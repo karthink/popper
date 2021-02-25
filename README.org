@@ -1,0 +1,115 @@
+#+title: Popper
+
+A minor-mode to help with the Emacs window flood. Designate any buffer to "popup" status, and it will stay out of your way. Disimss or summon it easily with one key. Useful for many things, including toggling REPLS, documentation, compilation or shell output, etc.
+
+popper can place your popups for you, but it Works best in conjunction
+with some system to handle window creation and placement, like =shackle.el=.
+This plugin summons windows defined by the user as "popups" by simply calling
+=display-buffer=.
+
+You can pre-designate any buffer (by name or major-mode) as a popup, and the status will be applied after window creation. 
+
+Toggle a popup: 
+#+ATTR_ORG: :width 500
+#+ATTR_HTML: :width 500px
+[[file:images/popper-toggle-latest.gif]]
+
+Cycle through all your popups:
+#+ATTR_ORG: :width 500
+#+ATTR_HTML: :width 500px
+[[file:images/popper-cycle.gif]]
+
+Turn a regular window into a popup:
+#+ATTR_ORG: :width 500
+#+ATTR_HTML: :width 500px
+[[file:images/popper-demote.gif]]
+
+Or toggle all your popups at once:
+#+ATTR_ORG: :width 500
+#+ATTR_HTML: :width 500px
+[[file:images/popper-toggle-all.gif]]
+
+You can also promote a popup to a normal window.
+* Usage
+To designate popups in your init file, see the customization section.
+
+There are three commands of note, you can bind them as convenient:
+
+- =popper-toggle-latest=: Show/hide the latest popup. Does more with prefix args.
+- =popper-cycle=: Cycle through your popups in sequence. With a prefix arg, cycle backwards.
+- =popper-toggle-type=: Turn a regular window into a popup or a popup into a regular window.
+  
+* Setup 
+=popper= is not part of any package archive, so you will need to ensure it's on the Emacs =load-path= somewhere.
+** With =use-package=
+#+BEGIN_SRC emacs-lisp
+    (use-package popper
+      :load-path "/path/to/popper/"                                   
+      :bind (("C-`" . popper-toggle-latest)
+             ("M-`" . popper-cycle))
+      :init
+      (setq popper-reference-buffers
+            '("\\*Messages\\*"
+              "Output\\*$"
+              help-mode
+              compilation-mode))
+      (popper-mode +1))
+#+END_SRC
+See [[*Customization][Customization]] for details on specifying buffer types as popups.
+
+** General
+#+BEGIN_SRC emacs-lisp
+  (require 'popper)
+  (setq popper-reference-buffers
+        '("\\*Messages\\*"
+          "Output\\*$"
+          help-mode
+          compilation-mode))
+  (global-set-key (kbd "C-`") 'popper-toggle-latest)  
+  (global-set-key (kbd "M-`") 'popper-cycle)  
+  (popper-mode +1)
+#+END_SRC
+See [[*Customization][Customization]] for details on specifying buffer types as popups.
+
+* Customization
+:PROPERTIES:
+:ID:       ce27af55-91a5-4549-97ac-d7f2c0aa9019
+:END:
+To get started, customize this variable:
+
+- =popper-reference-buffers=: List of buffers to treat as popups. Each entry in the list can be a regexp (string) to match buffer names against, or a major-mode (symbol) to match buffer major-modes against.
+
+  Example: 
+
+  #+BEGIN_SRC emacs-lisp
+    '("\\\*Messages\\\*"
+      "Output\\\*$"
+      help-mode
+      compilation-mode)
+  #+END_SRC
+
+  Will treat the following as popups: The Messages buffer, any buffer ending in "Output*", and all help and compilation buffers.
+
+  There are other customization options, check the =popper= group.
+
+**  Managing window placement
+In keeping with the principle of least surprise, all popups are shown in the same location: At the bottom of the frame. However this means you can't have more than one popup open at a time. You may also want more control over where individual popups appear. For example: all help windows open on the right, REPLs on top, compilation windows at the bottom, etc. This is best done by customizing Emacs' =display-buffer-alist=. Since this is a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html#The-Zen-of-Buffer-Display][singularly confusing task]], I recommend using =popper= with a package that locks window placements, /e.g./ [[https://depp.brause.cc/shackle/][Shackle]].
+
+*** Default popup placement:
+#+begin_src emacs-lisp
+  (setq popper-display-control t)  ;This is the DEFAULT behavior, you don't need this
+#+end_src
+
+*** Popup placement controlled using =display-buffer-alist= or =shackle.el=:
+#+begin_src emacs-lisp
+  (use-package shackle
+   :config
+   ;; -- shackle rules here --
+   )
+
+  (use-package poup-buffers
+  :config
+  ;; -- popper customizations here--
+
+  (setq popper-display-control nil))
+#+end_src
