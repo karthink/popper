@@ -4,7 +4,7 @@
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
 ;; Version: 0.20
-;; Package-Requires: ((emacs "25.3"))
+;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
 
@@ -57,6 +57,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'subr-x)
 
 (defgroup popper nil
   "Provide functions for easy access to popup windows"
