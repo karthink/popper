@@ -85,12 +85,14 @@ Will match against the Messages buffer, any buffer ending in Output*, and all he
  Can be a quoted list or function. Setting this to NIL removes
 the mode-line entirely from popper."
   :group 'popper
-  :type '(choice (string :tag "Literal text")
+  :type '(choice (const :tag "Off" nil)
+                 (string :tag "Literal text")
                  (sexp :tag "General `mode-line-format' entry")))
 
 (defcustom popper-mode-line-position 0
   "Position in mode-line to place `popper-mode-line'."
-  :type 'integer)
+  :type 'integer
+  :group 'popper)
 
 (defcustom popper-display-control t
   "Whether popper should control the placement of popup windows.
@@ -99,7 +101,9 @@ Choices are:
  nil : Do not control popup placement.
  t   : Control placement of all popups."
   :group 'popper
-  :type '(choice 'user t nil))
+  :type '(choice (const :tag "Explicitly set popups only" 'user)
+                 (const :tag "All popups" t)
+                 (const :tag "Never" nil)))
 
 (defcustom popper-display-function #'popper-select-popup-at-bottom
   "Function to use to display popper.
@@ -107,9 +111,9 @@ Choices are:
  Note that this is only invoked when
 `popper-display-control' is non-nil.
 
-This function accepts two arguments, a buffer and an action alist
-and displays the buffer. See (info \"(elisp) Buffer Display
-Action Alists\") for details on the alist."
+This function accepts two arguments, a buffer and (optional) an
+action alist and displays the buffer. See (info \"(elisp) Buffer
+Display Action Alists\") for details on the alist."
   :group 'popper
   :type 'function)
 
@@ -246,9 +250,9 @@ in the list of buffers TEST-BUFFER-LIST."
   (when popper-mode-line
     (if (member popper-mode-line mode-line-format)
         mode-line-format
-      (append (cl-subseq mode-line-format 0 popper-mode-line-position)
+      (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
               (cons popper-mode-line (nthcdr popper-mode-line-position
-                                                            mode-line-format))))))
+                                             (default-value 'mode-line-format)))))))
 
 (defun popper-bury-all ()
   "Bury all open popper."
