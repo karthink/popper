@@ -1,4 +1,4 @@
-;;; popper.el --- Summon and dismiss buffers easily. -*- lexical-binding: t -*-
+;;; popper.el --- Summon and dismiss buffers as popups -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2021  Karthik Chikmagalur
 
@@ -153,9 +153,9 @@ Action Alists\") for details on the alist."
       (member (buffer-local-value 'major-mode buf) popper-reference-modes)))
 
 (defun popper-display-control-p (buf &optional _act)
-  "Predicate to test if display of buffer BUF needs to be handled
-by popup-buffer. This is intended to be used in
-`display-buffer-alist'."
+  "Predicate to test if display of buffer BUF needs to be handled by popper.
+
+This is intended to be used in `display-buffer-alist'."
   (let ((buffer (if (bufferp buf) buf (get-buffer buf))))
     (pcase popper-display-control
       ('user
@@ -165,8 +165,8 @@ by popup-buffer. This is intended to be used in
             (memq popper-popup-status '(popup user-popup)))))))
 
 (defun popper-find-popups (test-buffer-list)
-  "Return an alist of (window . buffer) corresponding to
-popper in the list of buffers TEST-BUFFER-LIST."
+  "Return an alist of (window . buffer) corresponding to popups
+in the list of buffers TEST-BUFFER-LIST."
   (let* (open-popups)
     (dolist (b test-buffer-list open-popups)
       (let ((popup-status (buffer-local-value 'popper-popup-status b)))
@@ -265,13 +265,14 @@ the screen by `display-buffer' will not all be displayed."
 (defun popper-toggle-latest (&optional arg)
   "Toggle visibility of the last opened popup window.
 
-With prefix ARG C-u, toggle visibility of the next popup windows
+With prefix ARG \\[universal-argument], toggle visibility of the next popup windows
 while keeping the current one (FIXME: This behavior can be
 inconsistent.)
 
-With a double prefix ARG C-u C-u, toggle all popup-windows. Note
-that only one buffer can be show in one 'slot', so it will
-display as many windows as it can."
+With a double prefix ARG \\[universal-argument]
+\\[universal-argument], toggle all popup-windows. Note that only
+one buffer can be show in one 'slot', so it will display as many
+windows as it can."
   (interactive "p")
   (if popper-open-popup-alist
       (pcase arg
@@ -370,4 +371,4 @@ details on how to designate buffer types as popups."
                 display-buffer-alist))))
 
 (provide 'popper)
-;;; popper ends here
+;;; popper.el ends here

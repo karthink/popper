@@ -1,6 +1,6 @@
-#+title: Popper
+#+title: Popper.el
 
-A minor-mode to help with the Emacs window flood. Designate any buffer to "popup" status, and it will stay out of your way. Disimss or summon it easily with one key. Useful for many things, including toggling REPLS, documentation, compilation or shell output, etc.
+A minor-mode to help with the Emacs window flood. Designate any buffer to "popup" status, and it will stay out of your way. Disimss or summon it easily with one key. Useful for many things, including toggling display of REPLs, documentation, compilation or shell output, etc.
 
 popper can place your popups for you, but it Works best in conjunction
 with some system to handle window creation and placement, like =shackle.el=.
