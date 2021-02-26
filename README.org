@@ -2,7 +2,7 @@
 
 A minor-mode to help with the Emacs window flood. Designate any buffer to "popup" status, and it will stay out of your way. Disimss or summon it easily with one key. Useful for many things, including toggling display of REPLs, documentation, compilation or shell output, etc.
 
-popper can place your popups for you, but it Works best in conjunction
+popper can place your popups for you, but it works best in conjunction
 with some system to handle window creation and placement, like =shackle.el=.
 This plugin summons windows defined by the user as "popups" by simply calling
 =display-buffer=.
@@ -93,7 +93,7 @@ To get started, customize this variable:
   There are other customization options, check the =popper= group.
 
 **  Managing window placement
-In keeping with the principle of least surprise, all popups are shown in the same location: At the bottom of the frame. However this means you can't have more than one popup open at a time. You may also want more control over where individual popups appear. For example: all help windows open on the right, REPLs on top, compilation windows at the bottom, etc. This is best done by customizing Emacs' =display-buffer-alist=. Since this is a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html#The-Zen-of-Buffer-Display][singularly confusing task]], I recommend using =popper= with a package that locks window placements, /e.g./ [[https://depp.brause.cc/shackle/][Shackle]].
+In keeping with the principle of least surprise, all popups are shown in the same location: At the bottom of the frame. However this means you can't have more than one popup open at a time. You may also want more control over where individual popups appear. For example, you may want an IDE-like set-up, with all help windows open on the right, REPLs on top and compilation windows at the bottom. This is best done by customizing Emacs' =display-buffer-alist=. Since this is a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html#The-Zen-of-Buffer-Display][singularly confusing task]], I recommend using =popper= with a package that locks window placements, /e.g./ [[https://depp.brause.cc/shackle/][Shackle]].
 
 *** Default popup placement:
 #+begin_src emacs-lisp
