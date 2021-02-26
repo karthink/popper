@@ -76,7 +76,8 @@ Example:
   help-mode
   compilation-mode)
 
-Will match against the Messages buffer, any buffer ending in Output*, and all help and compilation buffers."
+Will match against the Messages buffer, any buffer ending in
+Output*, and all help and compilation buffers."
   :type '(restricted-sexp :match-alternatives (stringp symbolp))
   :group 'popper)
 

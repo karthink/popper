@@ -113,3 +113,8 @@ In keeping with the principle of least surprise, all popups are shown in the sam
 
   (setq popper-display-control nil))
 #+end_src
+
+* Technical notes
+=popper= uses a buffer local variable (=popper-popup-status=) to identify if a given buffer should be treated as a popup. Matching is always by buffer and not window, so having two windows of a buffer, one treated as a popup and one as a regular window, isn't possible (although you can do this with indirect clones). In addition, it maintains an alist of popup windows/buffers for cycling through.
+
+By default, it installs a single rule in =display-buffer-alist= to handle displaying popups. If =popper-display-control= is set to =nil=, this rule is ignored. You can change how the popups are shown by customizing =popper-display-function=, the function used by =display-buffer= to display popups, although you are better off customizing =display-buffer-alist= directly or using Shackle. 
