@@ -56,7 +56,8 @@
 
 ;;; Code:
 
-(require 'cl-lib)
+(require 'cl-macs)
+(require 'cl-seq)
 (require 'subr-x)
 
 (defgroup popper nil
@@ -192,10 +193,10 @@ in the list of buffers TEST-BUFFER-LIST."
  Meant to be added to `window-configuration-change-hook'."
   (let* ((open-buffers (mapcar #'window-buffer (window-list)))
          (open-popups (popper-find-popups open-buffers))
-         (closed-popups (cl-remove-if
+         (closed-popups (cl-remove-if-not
                          (lambda (arg)
-                           (eq (buffer-local-value 'popper-popup-status (cdr arg))
-                               'raised))
+                           (memq (buffer-local-value 'popper-popup-status (cdr arg))
+                                 '(popup user-popup)))
                          (cl-set-difference popper-open-popup-alist open-popups
                           :test (lambda (arg1 arg2) (eql (cdr arg1) (cdr arg2)))))))
          (setq popper-open-popup-alist (nreverse open-popups))
