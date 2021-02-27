@@ -182,7 +182,7 @@ in the list of buffers TEST-BUFFER-LIST."
                        (popper-popup-p b)))
           (with-current-buffer b
             (setq popper-popup-status (or popup-status
-                                                 'popup)))
+                                          'popup)))
           (push (cons (get-buffer-window b) b)
                 open-popups))))))
 
@@ -192,9 +192,12 @@ in the list of buffers TEST-BUFFER-LIST."
  Meant to be added to `window-configuration-change-hook'."
   (let* ((open-buffers (mapcar #'window-buffer (window-list)))
          (open-popups (popper-find-popups open-buffers))
-         (closed-popups (cl-set-difference popper-open-popup-alist
-                                           open-popups
-                         :test (lambda (arg1 arg2) (eql (cdr arg1) (cdr arg2))))))
+         (closed-popups (cl-remove-if
+                         (lambda (arg)
+                           (eq (buffer-local-value 'popper-popup-status (cdr arg))
+                               'raised))
+                         (cl-set-difference popper-open-popup-alist open-popups
+                          :test (lambda (arg1 arg2) (eql (cdr arg1) (cdr arg2)))))))
          (setq popper-open-popup-alist (nreverse open-popups))
          (setq popper-buried-popup-alist
                (append closed-popups
@@ -228,7 +231,7 @@ in the list of buffers TEST-BUFFER-LIST."
                     (lambda (item) (eq buf (cdr item)))
                     popper-buried-popup-alist))
           ;; buffer doesn't already exist in the buried popup list
-          (push (cons win buf) popper-buried-popup-alist)
+          (push (cons nil buf) popper-buried-popup-alist)
           (pop popper-open-popup-alist))
         (with-selected-window win
           (bury-buffer buf)
@@ -261,8 +264,8 @@ in the list of buffers TEST-BUFFER-LIST."
   (while popper-open-popup-alist
     (popper-close-latest)))
 
-(defun popper-raise-all ()
-  "Open all popper.
+(defun popper-open-all ()
+  "Open all popups.
 Note that buffers that are displayed in the same 'position' on
 the screen by `display-buffer' will not all be displayed."
   (while popper-buried-popup-alist
@@ -286,7 +289,7 @@ windows as it can."
         (16 (popper-bury-all))
         (_ (popper-close-latest)))
     (if (equal arg 16)
-        (popper-raise-all)
+        (popper-open-all)
       (popper-open-latest))))
 
 (defun popper-cycle (&optional _arg)

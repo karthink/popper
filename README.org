@@ -43,17 +43,18 @@ There are three commands of note, you can bind them as convenient:
 =popper= is not part of any package archive, so you will need to ensure it's on the Emacs =load-path= somewhere.
 ** With =use-package=
 #+BEGIN_SRC emacs-lisp
-    (use-package popper
-      :load-path "/path/to/popper/"                                   
-      :bind (("C-`" . popper-toggle-latest)
-             ("M-`" . popper-cycle))
-      :init
-      (setq popper-reference-buffers
-            '("\\*Messages\\*"
-              "Output\\*$"
-              help-mode
-              compilation-mode))
-      (popper-mode +1))
+  (use-package popper
+    :load-path "/path/to/popper/"                                   
+    :bind (("C-`"   . popper-toggle-latest)
+           ("M-`"   . popper-cycle)
+           ("C-M-`" . popper-toggle-type))
+    :init
+    (setq popper-reference-buffers
+          '("\\*Messages\\*"
+            "Output\\*$"
+            help-mode
+            compilation-mode))
+    (popper-mode +1))
 #+END_SRC
 See [[*Customization][Customization]] for details on specifying buffer types as popups.
 
