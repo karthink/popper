@@ -219,7 +219,6 @@ in the list of buffers TEST-BUFFER-LIST."
 
 (defun popper-close-latest ()
   "Close the last opened popup."
-  (interactive "P")
   (if (null popper-open-popup-alist)
       (message (if popper-mode
                    "No open popups!"
@@ -239,7 +238,6 @@ in the list of buffers TEST-BUFFER-LIST."
 
 (defun popper-open-latest ()
   "Open the last closed popup."
-  (interactive)
   (if (null popper-buried-popup-alist)
       (message (if popper-mode
                    "No buried popups!"
@@ -266,6 +264,7 @@ in the list of buffers TEST-BUFFER-LIST."
 
 (defun popper-open-all ()
   "Open all popups.
+
 Note that buffers that are displayed in the same 'position' on
 the screen by `display-buffer' will not all be displayed."
   (while popper-buried-popup-alist
@@ -312,7 +311,6 @@ direction."
 (defun popper-raise-popup (&optional buffer)
   "Raise a popup to regular status.
 If BUFFER is not specified,raise the current buffer."
-  (interactive)
   (when-let* ((buf (get-buffer (or buffer (current-buffer))))
               (popup-status (buffer-local-value 'popper-popup-status buf)))
     (with-current-buffer buf
@@ -325,7 +323,6 @@ If BUFFER is not specified,raise the current buffer."
   "Turn a regular buffer BUFFER into a popup.
 
 If BUFFER is not specified act on the current buffer instead."
-  (interactive)
   (let ((buf (get-buffer (or buffer (current-buffer)))))
     (with-current-buffer buf
       (setq popper-popup-status (if (popper-popup-p buf)
