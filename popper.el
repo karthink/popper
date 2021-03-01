@@ -21,7 +21,7 @@
 ;; GNU General Public License for more details.
 
 ;; For a full copy of the GNU General Public License
-;; see <http://www.gnu.org/licenses/>.
+;; see <https://www.gnu.org/licenses/>.
 ;;
 ;;; Commentary:
 
@@ -56,9 +56,10 @@
 
 ;;; Code:
 
-(require 'cl-macs)
-(require 'cl-seq)
+(require 'cl-lib)
 (require 'subr-x)
+
+(defvar popper-mode)
 
 (defgroup popper nil
   "Provide functions for easy access to popup windows"
@@ -172,8 +173,9 @@ This is intended to be used in `display-buffer-alist'."
             (memq popper-popup-status '(popup user-popup)))))))
 
 (defun popper-find-popups (test-buffer-list)
-  "Return an alist of (window . buffer) corresponding to popups
-in the list of buffers TEST-BUFFER-LIST."
+  "Return an alist corresponding to popups in TEST-BUFFER-LIST.
+
+Each element of the alist is a cons cell of the form (window . buffer)."
   (let* (open-popups)
     (dolist (b test-buffer-list open-popups)
       (let ((popup-status (buffer-local-value 'popper-popup-status b)))
@@ -227,9 +229,9 @@ in the list of buffers TEST-BUFFER-LIST."
     (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
       (when (and (window-valid-p win) (window-parent win))
         ;;only close window when window has a parent:
-        (when (not (seq-some
-                    (lambda (item) (eq buf (cdr item)))
-                    popper-buried-popup-alist))
+        (unless (seq-some
+                 (lambda (item) (eq buf (cdr item)))
+                 popper-buried-popup-alist)
           ;; buffer doesn't already exist in the buried popup list
           (push (cons nil buf) popper-buried-popup-alist)
           (pop popper-open-popup-alist))
@@ -364,14 +366,14 @@ details on how to designate buffer types as popups."
               (cl-remove-if-not #'symbolp popper-reference-buffers))
         (popper-find-buried-popups)
         (popper-update-popups)
-        (add-hook 'window-configuration-change-hook 'popper-update-popups)
+        (add-hook 'window-configuration-change-hook #'popper-update-popups)
         (add-to-list 'display-buffer-alist
                      `(popper-display-control-p
                        (,popper-display-function))))
     ;; Turning the mode OFF
     (setq popper-buried-popup-alist nil
           popper-open-popup-alist nil)
-    (remove-hook 'window-configuration-change-hook 'popper-update-popups)
+    (remove-hook 'window-configuration-change-hook #'popper-update-popups)
     (setq display-buffer-alist
           (delete `(popper-display-control-p
                     (,popper-display-function))
