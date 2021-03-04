@@ -199,12 +199,15 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                          (lambda (arg)
                            (memq (buffer-local-value 'popper-popup-status (cdr arg))
                                  '(popup user-popup)))
-                         (cl-set-difference popper-open-popup-alist open-popups
-                          :test (lambda (arg1 arg2) (eql (cdr arg1) (cdr arg2)))))))
+                         (cl-set-difference popper-open-popup-alist
+                                            open-popups
+                                            :key #'cdr))))
          (setq popper-open-popup-alist (nreverse open-popups))
          (setq popper-buried-popup-alist
                (append closed-popups
-                       popper-buried-popup-alist)))
+                       (cl-set-difference popper-buried-popup-alist
+                                          closed-popups
+                                          :key #'cdr))))
   ;; Mode line update
   (cl-loop for (_ . buf) in popper-open-popup-alist do
              (with-current-buffer buf
