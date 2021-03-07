@@ -58,6 +58,7 @@
 
 (require 'cl-lib)
 (require 'subr-x)
+(require 'project)
 
 (defvar popper-mode)
 
@@ -141,6 +142,9 @@ Display Action Alists\") for details on the alist."
 'raised    : This is a POPUP buffer raised to regular status by the user.
 'user-popup: This is a regular buffer lowered to popup status by the user.")
 
+(defvar popper-limit-to-project t
+  "Limit popups to those corresponding to the current project.")
+
 (defun popper-select-popup-at-bottom (buffer &optional _alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
   (let ((window (display-buffer-in-side-window
@@ -168,9 +172,9 @@ This is intended to be used in `display-buffer-alist'."
     (pcase popper-display-control
       ('user
        (with-current-buffer buffer
-         (eq popper-popup-status 'user-popup)))
+         (eq (car popper-popup-status) 'user-popup)))
       ('t (with-current-buffer buffer
-            (memq popper-popup-status '(popup user-popup)))))))
+            (memq (car popper-popup-status) '(popup user-popup)))))))
 
 (defun popper-find-popups (test-buffer-list)
   "Return an alist corresponding to popups in TEST-BUFFER-LIST.
@@ -180,12 +184,15 @@ Each element of the alist is a cons cell of the form (window . buffer)."
     (dolist (b test-buffer-list open-popups)
       (let ((popup-status (buffer-local-value 'popper-popup-status b)))
         (when (and (not (minibufferp b))
-                   (not (eq popup-status 'raised))
-                   (or (member popup-status '(popup user-popup))
+                   (not (eq (car popup-status) 'raised))
+                   (or (member (car popup-status) '(popup user-popup))
                        (popper-popup-p b)))
           (with-current-buffer b
-            (setq popper-popup-status (or popup-status
-                                          'popup)))
+            (setq popper-popup-status (cons (or (car popup-status)
+                                                'popup)
+                                            (when popper-limit-to-project
+                                              (or (project-root (project-current))
+                                                  default-directory)))))
           (push (cons (get-buffer-window b) b)
                 open-popups))))))
 
@@ -197,7 +204,7 @@ Each element of the alist is a cons cell of the form (window . buffer)."
          (open-popups (popper-find-popups open-buffers))
          (closed-popups (cl-remove-if-not
                          (lambda (arg)
-                           (memq (buffer-local-value 'popper-popup-status (cdr arg))
+                           (memq (car (buffer-local-value 'popper-popup-status (cdr arg)))
                                  '(popup user-popup)))
                          (cl-set-difference popper-open-popup-alist
                                             open-popups
@@ -320,7 +327,7 @@ If BUFFER is not specified,raise the current buffer."
   (when-let* ((buf (get-buffer (or buffer (current-buffer))))
               (popup-status (buffer-local-value 'popper-popup-status buf)))
     (with-current-buffer buf
-      (setq popper-popup-status (and (popper-popup-p buf) 'raised))
+      (setf (car popper-popup-status) (and (popper-popup-p buf) 'raised))
       (setq mode-line-format (default-value 'mode-line-format)))
     (delete-window (get-buffer-window buf))
     (pop-to-buffer buf)))
@@ -331,7 +338,7 @@ If BUFFER is not specified,raise the current buffer."
 If BUFFER is not specified act on the current buffer instead."
   (let ((buf (get-buffer (or buffer (current-buffer)))))
     (with-current-buffer buf
-      (setq popper-popup-status (if (popper-popup-p buf)
+      (setf (car popper-popup-status) (if (popper-popup-p buf)
                                            'popup
                                          'user-popup))
       (delete-window (get-buffer-window buf t))
@@ -345,7 +352,7 @@ If BUFFER is not specified act on the current buffer instead."
   (interactive)
   (let* ((buf (get-buffer (or buffer (current-buffer))))
          (popup-status (buffer-local-value 'popper-popup-status buf)))
-    (pcase popup-status
+    (pcase (car popup-status)
       ((or 'popup 'user-popup) (popper-raise-popup buf))
       (_ (popper-lower-to-popup buf)))))
 
