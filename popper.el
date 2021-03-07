@@ -251,7 +251,7 @@ Each element of the alist is a cons cell of the form (window . buffer)."
     (let* ((new-popup (pop popper-buried-popup-alist))
            (buf (cdr new-popup)))
       (if (buffer-live-p buf)
-          (progn (display-buffer buf))
+          (display-buffer buf)
         (popper-open-latest)))))
 
 (defun popper-modified-mode-line ()
