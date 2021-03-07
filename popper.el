@@ -261,6 +261,18 @@ Each element of the alist is a cons cell of the form (window . buffer)."
           (progn (display-buffer buf))
         (popper-open-latest)))))
 
+;; (defun popper-open-latest ()
+;;   "Open the last closed popup."
+;;   (if (null popper-buried-popup-alist)
+;;       (message (if popper-mode
+;;                    "No buried popups!"
+;;                  "popper-mode not active!"))
+;;     (let* ((new-popup (pop popper-buried-popup-alist))
+;;            (buf (cdr new-popup)))
+;;       (if (buffer-live-p buf)
+;;           (progn (display-buffer buf))
+;;         (popper-open-latest)))))
+
 (defun popper-modified-mode-line ()
   "Return modified mode-line string."
   (when popper-mode-line
@@ -327,7 +339,9 @@ If BUFFER is not specified,raise the current buffer."
   (when-let* ((buf (get-buffer (or buffer (current-buffer))))
               (popup-status (buffer-local-value 'popper-popup-status buf)))
     (with-current-buffer buf
-      (setf (car popper-popup-status) (and (popper-popup-p buf) 'raised))
+      (if (popper-popup-p buf)
+          (setf (car popper-popup-status) 'raised)
+        (setq popper-popup-status nil))
       (setq mode-line-format (default-value 'mode-line-format)))
     (delete-window (get-buffer-window buf))
     (pop-to-buffer buf)))
@@ -338,9 +352,12 @@ If BUFFER is not specified,raise the current buffer."
 If BUFFER is not specified act on the current buffer instead."
   (let ((buf (get-buffer (or buffer (current-buffer)))))
     (with-current-buffer buf
-      (setf (car popper-popup-status) (if (popper-popup-p buf)
-                                           'popup
-                                         'user-popup))
+      (setq popper-popup-status (cons (if (popper-popup-p buf)
+                                          'popup
+                                        'user-popup)
+                                      (when popper-limit-to-project
+                                        (or (project-root (project-current))
+                                            default-directory))))
       (delete-window (get-buffer-window buf t))
       (pop-to-buffer buf))
     (popper-update-popups)))
