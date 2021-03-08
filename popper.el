@@ -122,6 +122,19 @@ Display Action Alists\") for details on the alist."
   :group 'popper
   :type 'function)
 
+(defcustom popper-popup-identifier 'popper-popup-identifier:project
+  "Function that returns a popup identifier.
+
+This function is called with no arguments and should return a
+string or symbol identifying a popup buffer's group. This
+identifier is used to associate popups with regular buffers (such
+as by project, directory, or major-mode) so that popup-cycling
+from a regular buffer is restricted to its associated group. This
+function is ignored unless `popper-limit-cycling-by-predicate' is
+t."
+  :group 'popper
+  :type 'function)
+
 (defvar popper-reference-names nil
   "List of buffer names whose windows are treated as popups.")
 
@@ -142,7 +155,7 @@ Display Action Alists\") for details on the alist."
 'raised    : This is a POPUP buffer raised to regular status by the user.
 'user-popup: This is a regular buffer lowered to popup status by the user.")
 
-(defvar popper-limit-to-project t
+(defvar popper-limit-cycling-by-predicate nil
   "Limit popups to those corresponding to the current project.")
 
 (defun popper-select-popup-at-bottom (buffer &optional _alist)
@@ -176,6 +189,11 @@ This is intended to be used in `display-buffer-alist'."
       ('t (with-current-buffer buffer
             (memq (car popper-popup-status) '(popup user-popup)))))))
 
+(defun popper-popup-identifier:project ()
+  "Returns an identifier to group popups by."
+  (or (project-root (project-current))
+      (expand-file-name default-directory)))
+
 (defun popper-find-popups (test-buffer-list)
   "Return an alist corresponding to popups in TEST-BUFFER-LIST.
 
@@ -190,9 +208,8 @@ Each element of the alist is a cons cell of the form (window . buffer)."
           (with-current-buffer b
             (setq popper-popup-status (cons (or (car popup-status)
                                                 'popup)
-                                            (when popper-limit-to-project
-                                              (or (project-root (project-current))
-                                                  default-directory)))))
+                                            (when popper-limit-cycling-by-predicate
+                                              (funcall popper-popup-identifier)))))
           (push (cons (get-buffer-window b) b)
                 open-popups))))))
 
@@ -249,17 +266,25 @@ Each element of the alist is a cons cell of the form (window . buffer)."
           (bury-buffer buf)
           (delete-window win))))))
 
-(defun popper-open-latest ()
+(defun popper-open-latest (&optional predicate)
   "Open the last closed popup."
   (if (null popper-buried-popup-alist)
       (message (if popper-mode
                    "No buried popups!"
                  "popper-mode not active!"))
-    (let* ((new-popup (pop popper-buried-popup-alist))
+    (if-let* ((new-popup (if (and popper-limit-cycling-by-predicate predicate)
+                             (prog1 (seq-some predicate
+                                              popper-buried-popup-alist)
+                               (setq popper-buried-popup-alist
+                                     (cl-remove-if predicate
+                                                   popper-buried-popup-alist
+                                                   :count 1)))
+                             (pop popper-buried-popup-alist)))
            (buf (cdr new-popup)))
       (if (buffer-live-p buf)
           (progn (display-buffer buf))
-        (popper-open-latest)))))
+        (popper-open-latest))
+      (message "No popups for predicate!"))))
 
 ;; (defun popper-open-latest ()
 ;;   "Open the last closed popup."
@@ -322,16 +347,23 @@ windows as it can."
 TODO: With a prefix argument ARG, cycle in the opposite
 direction."
   (interactive "p")
-  (if (null popper-open-popup-alist)
-      (popper-open-latest)
-    (if (null popper-buried-popup-alist)
-        (popper-bury-all) ; starting new cycle, so bury everything first.
-      ;; cycle through buffers
-      (popper-close-latest)
-      (let ((bufs popper-buried-popup-alist))
-        (setq popper-buried-popup-alist
-              (append (cdr bufs) (cons (car bufs) nil))))
-      (popper-open-latest))))
+  (let* ((predicate (when popper-limit-cycling-by-predicate
+                      (let ((identifier (funcall popper-popup-identifier)))
+                        (lambda (wb) (with-current-buffer (cdr wb)
+                                  (and (equal identifier (cdr popper-popup-status))
+                                       wb)))))))
+    (if (null popper-open-popup-alist)
+        (popper-open-latest predicate)
+      (if (or (and popper-limit-cycling-by-predicate
+                   (not (seq-some predicate popper-buried-popup-alist)))
+              (null popper-buried-popup-alist))
+          (popper-bury-all) ; starting new cycle, so bury everything first.
+        ;; cycle through buffers
+        (popper-close-latest)
+        (let ((bufs popper-buried-popup-alist))
+          (setq popper-buried-popup-alist
+                (append (cdr bufs) (cons (car bufs) nil))))
+        (popper-open-latest predicate)))))
 
 (defun popper-raise-popup (&optional buffer)
   "Raise a popup to regular status.
@@ -355,7 +387,7 @@ If BUFFER is not specified act on the current buffer instead."
       (setq popper-popup-status (cons (if (popper-popup-p buf)
                                           'popup
                                         'user-popup)
-                                      (when popper-limit-to-project
+                                      (when popper-limit-cycling-by-predicate
                                         (or (project-root (project-current))
                                             default-directory))))
       (delete-window (get-buffer-window buf t))
