@@ -122,13 +122,13 @@ Display Action Alists\") for details on the alist."
   :group 'popper
   :type 'function)
 
-(defcustom popper-popup-identifier 'popper-popup-identifier:project
+(defcustom popper-popup-identifier 'popper-popup-identifier-project
   "Function that returns a popup identifier.
 
 This function is called with no arguments and should return a
 string or symbol identifying a popup buffer's group. This
 identifier is used to associate popups with regular buffers (such
-as by project, directory, or major-mode) so that popup-cycling
+as by project, directory, or `major-mode') so that popup-cycling
 from a regular buffer is restricted to its associated group. This
 function is ignored unless `popper-limit-cycling-by-predicate' is
 t."
@@ -189,8 +189,8 @@ This is intended to be used in `display-buffer-alist'."
       ('t (with-current-buffer buffer
             (memq (car popper-popup-status) '(popup user-popup)))))))
 
-(defun popper-popup-identifier:project ()
-  "Returns an identifier to group popups by."
+(defun popper-popup-identifier-project ()
+  "Return an identifier (string or symbol) to group popups by."
   (or (project-root (project-current))
       (expand-file-name default-directory)))
 
@@ -267,7 +267,10 @@ Each element of the alist is a cons cell of the form (window . buffer)."
           (delete-window win))))))
 
 (defun popper-open-latest (&optional predicate)
-  "Open the last closed popup."
+  "Open the last closed popup.
+
+Optional argument PREDICATE is called with no arguments to select
+a popup buffer to open."
   (if (null popper-buried-popup-alist)
       (message (if popper-mode
                    "No buried popups!"
