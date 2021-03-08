@@ -378,9 +378,9 @@ details on how to designate buffer types as popups."
           popper-open-popup-alist nil)
     (remove-hook 'window-configuration-change-hook #'popper-update-popups)
     (setq display-buffer-alist
-          (delete `(popper-display-control-p
-                    (,popper-display-function))
-                display-buffer-alist))))
+          (cl-remove 'popper-display-control-p
+                     display-buffer-alist
+                     :key 'car))))
 
 (provide 'popper)
 ;;; popper.el ends here
