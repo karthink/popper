@@ -130,7 +130,7 @@ string or symbol identifying a popup buffer's group. This
 identifier is used to associate popups with regular buffers (such
 as by project, directory, or `major-mode') so that popup-cycling
 from a regular buffer is restricted to its associated group. This
-function is ignored unless `popper-limit-cycling-by-predicate' is
+function is ignored unless `popper-group-popups-by-predicate' is
 t."
   :group 'popper
   :type 'function)
@@ -142,7 +142,10 @@ t."
  "List of buffer major-modes whose buffers are treated as popups.")
 
 (defvar popper-open-popup-alist nil
-  "Alist of currently live (window . buffer)s that are treated as popups.")
+  "Alist of currently live (window . buffer)s that are treated as popups.
+
+If `popper-group-popups-by-predicate' is t, these are grouped by
+the predicate `popper-popup-identifier'.")
 
 (defvar popper-buried-popup-alist nil
   "Alist of currently buried (window . buffer)s that are treated as popups.")
@@ -155,7 +158,7 @@ t."
 'raised    : This is a POPUP buffer raised to regular status by the user.
 'user-popup: This is a regular buffer lowered to popup status by the user.")
 
-(defvar popper-limit-cycling-by-predicate nil
+(defvar popper-group-popups-by-predicate nil
   "Limit popups to those corresponding to the current project.")
 
 (defun popper-select-popup-at-bottom (buffer &optional _alist)
@@ -208,7 +211,7 @@ Each element of the alist is a cons cell of the form (window . buffer)."
           (with-current-buffer b
             (setq popper-popup-status (cons (or (car popup-status)
                                                 'popup)
-                                            (when popper-limit-cycling-by-predicate
+                                            (when popper-group-popups-by-predicate
                                               (funcall popper-popup-identifier)))))
           (push (cons (get-buffer-window b) b)
                 open-popups))))))
@@ -227,11 +230,29 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                                             open-popups
                                             :key #'cdr))))
          (setq popper-open-popup-alist (nreverse open-popups))
-         (setq popper-buried-popup-alist
-               (append closed-popups
-                       (cl-set-difference popper-buried-popup-alist
-                                          closed-popups
-                                          :key #'cdr))))
+         (if popper-group-popups-by-predicate 
+             (cl-loop for (win . buf) in closed-popups do
+                      (let ((identifier-popups
+                             (cdr (assoc
+                                   (with-current-buffer buf
+                                     (funcall popper-popup-identifier))
+                                   popper-buried-popup-alist
+                                  'equal))))
+                        (setf 
+                         (alist-get
+                          (with-current-buffer buf
+                            (funcall popper-popup-identifier))
+                          popper-buried-popup-alist
+                          nil nil 'equal)
+                         (push (cons win buf)
+                               (cl-remove (cons win buf)
+                                          identifier-popups
+                                          :key 'cdr)))))
+           (setf (alist-get nil popper-buried-popup-alist)
+                 (append closed-popups
+                         (cl-set-difference (cdr (assoc nil popper-buried-popup-alist))
+                                            closed-popups
+                                            :key #'cdr)))))
   ;; Mode line update
   (cl-loop for (_ . buf) in popper-open-popup-alist do
              (with-current-buffer buf
@@ -241,11 +262,21 @@ Each element of the alist is a cons cell of the form (window . buffer)."
   "Update the list of currently buried popups.
 
  Meant to be run when starting command `popper-mode'."
-  (setq popper-buried-popup-alist
-        (popper-find-popups
-            (cl-set-difference (buffer-list)
-                               (mapcar #'window-buffer
-                                       (window-list))))))
+  (let ((buried-popups (popper-find-popups
+                        (cl-set-difference
+                         (buffer-list)
+                         (mapcar #'window-buffer
+                                 (window-list))))))
+    (if popper-group-popups-by-predicate 
+        (cl-loop for (win . buf) in buried-popups do
+                 (push (cons win buf)
+                       (alist-get
+                        (with-current-buffer buf
+                          (funcall popper-popup-identifier))
+                        popper-buried-popup-alist
+                        nil nil 'equal)))
+      (setq popper-buried-popup-alist
+            (list (cons nil buried-popups))))))
 
 (defun popper-close-latest ()
   "Close the last opened popup."
@@ -256,50 +287,42 @@ Each element of the alist is a cons cell of the form (window . buffer)."
     (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
       (when (and (window-valid-p win) (window-parent win))
         ;;only close window when window has a parent:
-        (unless (seq-some
-                 (lambda (item) (eq buf (cdr item)))
-                 popper-buried-popup-alist)
-          ;; buffer doesn't already exist in the buried popup list
-          (push (cons nil buf) popper-buried-popup-alist)
-          (pop popper-open-popup-alist))
+        ;; (unless (seq-some
+        ;;          (lambda (item) (eq buf (cdr item)))
+        ;;          popper-buried-popup-alist))
+        ;; buffer doesn't already exist in the buried popup list
+        (if popper-group-popups-by-predicate
+            (push (cons nil buf) (alist-get (with-current-buffer buf
+                                              (funcall popper-popup-identifier))
+                                            popper-buried-popup-alist
+                                            nil nil 'equal))
+          (push (cons nil buf) (alist-get nil popper-buried-popup-alist)))
+        (pop popper-open-popup-alist)
         (with-selected-window win
           (bury-buffer buf)
           (delete-window win))))))
 
-(defun popper-open-latest (&optional predicate)
+(defun popper-open-latest (&optional group)
   "Open the last closed popup.
 
 Optional argument PREDICATE is called with no arguments to select
 a popup buffer to open."
-  (if (null popper-buried-popup-alist)
-      (message (if popper-mode
-                   "No buried popups!"
-                 "popper-mode not active!"))
-    (if-let* ((new-popup (if (and popper-limit-cycling-by-predicate predicate)
-                             (prog1 (seq-some predicate
-                                              popper-buried-popup-alist)
-                               (setq popper-buried-popup-alist
-                                     (cl-remove-if predicate
-                                                   popper-buried-popup-alist
-                                                   :count 1)))
-                             (pop popper-buried-popup-alist)))
-           (buf (cdr new-popup)))
-      (if (buffer-live-p buf)
-          (progn (display-buffer buf))
-        (popper-open-latest))
-      (message "No popups for predicate!"))))
-
-;; (defun popper-open-latest ()
-;;   "Open the last closed popup."
-;;   (if (null popper-buried-popup-alist)
-;;       (message (if popper-mode
-;;                    "No buried popups!"
-;;                  "popper-mode not active!"))
-;;     (let* ((new-popup (pop popper-buried-popup-alist))
-;;            (buf (cdr new-popup)))
-;;       (if (buffer-live-p buf)
-;;           (progn (display-buffer buf))
-;;         (popper-open-latest)))))
+  
+  (let ((identifier (when popper-group-popups-by-predicate group)))
+    (if (null (alist-get identifier popper-buried-popup-alist
+                         nil nil 'equal))
+        (message (if popper-mode
+                     "No buried popups!"
+                   "popper-mode not active!"))
+      (if-let* ((new-popup (pop (alist-get identifier popper-buried-popup-alist
+                                           nil nil 'equal)))
+                (buf (cdr new-popup)))
+          (if (buffer-live-p buf)
+              (progn (display-buffer buf))
+            (popper-open-latest))
+        (message (format "No popups for %s" (if (symbolp identifier)
+                                                (symbol-name identifier)
+                                              identifier)))))))
 
 (defun popper-modified-mode-line ()
   "Return modified mode-line string."
@@ -320,8 +343,10 @@ a popup buffer to open."
 
 Note that buffers that are displayed in the same 'position' on
 the screen by `display-buffer' will not all be displayed."
-  (while popper-buried-popup-alist
-    (popper-open-latest)))
+  (let ((group (when popper-group-popups-by-predicate
+                 (funcall popper-popup-identifier))))
+    (while popper-buried-popup-alist
+      (popper-open-latest group))))
 
 (defun popper-toggle-latest (&optional arg)
   "Toggle visibility of the last opened popup window.
@@ -335,14 +360,16 @@ With a double prefix ARG \\[universal-argument]
 one buffer can be show in one 'slot', so it will display as many
 windows as it can."
   (interactive "p")
-  (if popper-open-popup-alist
-      (pcase arg
-        (4 (popper-open-latest))
-        (16 (popper-bury-all))
-        (_ (popper-close-latest)))
-    (if (equal arg 16)
-        (popper-open-all)
-      (popper-open-latest))))
+  (let ((group (when popper-group-popups-by-predicate
+                 (funcall popper-popup-identifier))))
+    (if popper-open-popup-alist
+        (pcase arg
+          (4 (popper-open-latest group))
+          (16 (popper-bury-all))
+          (_ (popper-close-latest)))
+      (if (equal arg 16)
+          (popper-open-all)
+        (popper-open-latest group)))))
 
 (defun popper-cycle (&optional _arg)
   "Cycle visibility of popup windows one at a time.
@@ -350,23 +377,18 @@ windows as it can."
 TODO: With a prefix argument ARG, cycle in the opposite
 direction."
   (interactive "p")
-  (let* ((predicate (when popper-limit-cycling-by-predicate
-                      (let ((identifier (funcall popper-popup-identifier)))
-                        (lambda (wb) (with-current-buffer (cdr wb)
-                                  (and (equal identifier (cdr popper-popup-status))
-                                       wb)))))))
+  (let* ((group (when popper-group-popups-by-predicate
+                  (funcall popper-popup-identifier))))
     (if (null popper-open-popup-alist)
-        (popper-open-latest predicate)
-      (if (or (and popper-limit-cycling-by-predicate
-                   (not (seq-some predicate popper-buried-popup-alist)))
-              (null popper-buried-popup-alist))
+        (popper-open-latest group)
+      (if (null (alist-get group popper-buried-popup-alist nil nil 'equal))
           (popper-bury-all) ; starting new cycle, so bury everything first.
         ;; cycle through buffers
         (popper-close-latest)
-        (let ((bufs popper-buried-popup-alist))
-          (setq popper-buried-popup-alist
+        (let ((bufs (cdr (assoc group popper-buried-popup-alist))))
+          (setf (alist-get group popper-buried-popup-alist nil nil 'equal)
                 (append (cdr bufs) (cons (car bufs) nil))))
-        (popper-open-latest predicate)))))
+        (popper-open-latest group)))))
 
 (defun popper-raise-popup (&optional buffer)
   "Raise a popup to regular status.
@@ -390,7 +412,7 @@ If BUFFER is not specified act on the current buffer instead."
       (setq popper-popup-status (cons (if (popper-popup-p buf)
                                           'popup
                                         'user-popup)
-                                      (when popper-limit-cycling-by-predicate
+                                      (when popper-group-popups-by-predicate
                                         (or (project-root (project-current))
                                             default-directory))))
       (delete-window (get-buffer-window buf t))
@@ -415,7 +437,7 @@ windows as popups, a class of window that can be summoned or
 dismissed with a command. See the customization options for
 details on how to designate buffer types as popups."
   :global t
-  :version "0.20"
+  :version "0.25"
   :lighter ""
   :group 'popper
   :keymap (let ((map (make-sparse-keymap))) map)
@@ -437,9 +459,9 @@ details on how to designate buffer types as popups."
           popper-open-popup-alist nil)
     (remove-hook 'window-configuration-change-hook #'popper-update-popups)
     (setq display-buffer-alist
-          (delete `(popper-display-control-p
-                    (,popper-display-function))
-                display-buffer-alist))))
+          (cl-remove '(popper-display-control-p)
+                     display-buffer-alist
+                     :test (lambda (a b) (eq (car a) (car b)))))))
 
 (provide 'popper)
 ;;; popper.el ends here
