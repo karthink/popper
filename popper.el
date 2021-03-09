@@ -287,16 +287,16 @@ Each element of the alist is a cons cell of the form (window . buffer)."
     (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
       (when (and (window-valid-p win) (window-parent win))
         ;;only close window when window has a parent:
-        ;; (unless (seq-some
-        ;;          (lambda (item) (eq buf (cdr item)))
-        ;;          popper-buried-popup-alist))
-        ;; buffer doesn't already exist in the buried popup list
-        (if popper-group-popups-by-predicate
-            (push (cons nil buf) (alist-get (with-current-buffer buf
-                                              (funcall popper-popup-identifier))
+        (let ((group (when popper-group-popups-by-predicate
+                       (with-current-buffer buf
+                         (funcall popper-popup-identifier)))))
+          (unless (cl-member buf
+                             (cdr (assoc group popper-buried-popup-alist))
+                             :key 'cdr)
+            ;; buffer doesn't already exist in the buried popup list
+            (push (cons nil buf) (alist-get group
                                             popper-buried-popup-alist
-                                            nil nil 'equal))
-          (push (cons nil buf) (alist-get nil popper-buried-popup-alist)))
+                                            nil nil 'equal))))
         (pop popper-open-popup-alist)
         (with-selected-window win
           (bury-buffer buf)
