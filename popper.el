@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021  Karthik Chikmagalur
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
-;; Version: 0.20
+;; Version: 0.30
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
@@ -280,10 +280,9 @@ Each element of the alist is a cons cell of the form (window . buffer)."
 
 (defun popper-close-latest ()
   "Close the last opened popup."
+  (unless popper-mode (user-error "popper-mode not active!"))
   (if (null popper-open-popup-alist)
-      (message (if popper-mode
-                   "No open popups!"
-                 "popper-mode not active!"))
+      (message "No open popups!")
     (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
       (when (and (window-valid-p win) (window-parent win))
         ;;only close window when window has a parent:
@@ -307,22 +306,22 @@ Each element of the alist is a cons cell of the form (window . buffer)."
 
 Optional argument PREDICATE is called with no arguments to select
 a popup buffer to open."
-  
-  (let ((identifier (when popper-group-popups-by-predicate group)))
+  (unless popper-mode (user-error "popper-mode not active!"))
+  (let* ((identifier (when popper-group-popups-by-predicate group))
+        (no-popup-msg (format "No buried popups for group %s"
+                                 (if (symbolp identifier)
+                                     (symbol-name identifier)
+                                   identifier))))
     (if (null (alist-get identifier popper-buried-popup-alist
-                         nil nil 'equal))
-        (message (if popper-mode
-                     "No buried popups!"
-                   "popper-mode not active!"))
+                         nil 'remove 'equal))
+        (message (if identifier no-popup-msg "No buried popups"))
       (if-let* ((new-popup (pop (alist-get identifier popper-buried-popup-alist
-                                           nil nil 'equal)))
+                                           nil 'remove 'equal)))
                 (buf (cdr new-popup)))
           (if (buffer-live-p buf)
               (progn (display-buffer buf))
             (popper-open-latest))
-        (message (format "No popups for %s" (if (symbolp identifier)
-                                                (symbol-name identifier)
-                                              identifier)))))))
+        (message no-popup-msg)))))
 
 (defun popper-modified-mode-line ()
   "Return modified mode-line string."
@@ -430,6 +429,14 @@ If BUFFER is not specified act on the current buffer instead."
       ((or 'popup 'user-popup) (popper-raise-popup buf))
       (_ (popper-lower-to-popup buf)))))
 
+(defun popper-kill-latest-popup ()
+  "Kill the latest popup-buffer and delete its window."
+  (interactive)
+  (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
+    (pop popper-open-popup-alist)
+    (delete-window win)
+    (kill-buffer buf)))
+
 ;;;###autoload
 (define-minor-mode popper-mode
   "Toggle Popper mode. When enabled, treat certain buffer
@@ -437,7 +444,7 @@ windows as popups, a class of window that can be summoned or
 dismissed with a command. See the customization options for
 details on how to designate buffer types as popups."
   :global t
-  :version "0.25"
+  :version "0.30"
   :lighter ""
   :group 'popper
   :keymap (let ((map (make-sparse-keymap))) map)
