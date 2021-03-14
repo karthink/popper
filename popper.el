@@ -58,8 +58,6 @@
 ;; TODO: Add popup list maintenance to
 ;; `make-frame-finish-functions', (add-hook 'after-make-frame-functions
 ;; 'popper-update-popups)
-;;
-;; by Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
 
 ;;; Code:
 
