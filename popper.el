@@ -30,8 +30,8 @@
 ;; toggling REPLS, documentation, compilation or shell output, etc. This package
 ;; will place buffers on your screen, but it works best in conjunction with some
 ;; system to handle window creation and placement, like shackle.el. Under the
-;; hood popper summons windows defined by the user as "popups" by simply
-;; calling `display-buffer'.
+;; hood popper summons windows defined by the user as "popups" by simply calling
+;; `display-buffer'.
 ;;
 ;; COMMANDS:
 ;;
@@ -48,11 +48,6 @@
 ;; `popper-mode-line': String or sexp to show in the mode-line of
 ;; popper. Setting this to NIL removes the mode-line entirely from
 ;; popper.
-;;
-;; TODO: Add popup list maintenance to `make-frame-finish-functions',
-;; (add-hook 'after-make-frame-functions 'popper-update-popups)
-;;
-;; by Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
 
 ;;; Code:
 
