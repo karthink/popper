@@ -130,14 +130,7 @@ Display Action Alists\") for details on the alist."
   :group 'popper
   :type 'function)
 
-;; (defcustom popper-group-function nil
-;;   "When non-nil, group popups by context.
-
-;; Contexts are determined by the value of `popper-popup-identifier' (which see). A context is any user-defined property (such as project root, directory, minor mode etc) that a group of popups share. This setting restricts the available popups in a context to those created in that context. For instance, only popups associated with a project are available to cycle when in a project buffer."
-;;   :group 'popper
-;;   :type 'boolean)
-
-(defcustom popper-group-function 'popper-popup-identifier-project
+(defcustom popper-group-function nil
   "Function that returns a popup context.
 
 When set to nil popups are not grouped by context.
@@ -150,15 +143,15 @@ from a regular buffer is restricted to its associated group.
 
 Built-in choices include
 
-`popper-popup-identifier-directory': Return project root or default directory.
-`popper-popup-identifier-project': Return project root using project.el.
-`popper-popup-identifier-projectile': Return project root using projectile."
+`popper-group-by-directory': Return project root or default directory.
+`popper-group-by-project': Return project root using project.el.
+`popper-group-by-projectile': Return project root using projectile."
   :group 'popper
   :type '(choice
           (const :tag "Don't group popups" nil)
-          (const :tag "Group by project (project.el)" popper-popup-identifier-project)
-          (const :tag "Group by project (projectile)" popper-popup-identifier-projectile)
-          (const :tag "Group by directory" popper-popup-identifier-directory)
+          (const :tag "Group by project (project.el)" popper-group-by-project)
+          (const :tag "Group by project (projectile)" popper-group-by-projectile)
+          (const :tag "Group by directory" popper-group-by-directory)
           (function :tag "Custom function")))
 
 (defvar popper-reference-names nil
@@ -215,7 +208,7 @@ This is intended to be used in `display-buffer-alist'."
       ('t (with-current-buffer buffer
             (memq popper-popup-status '(popup user-popup)))))))
 
-(defun popper-popup-identifier-directory ()
+(defun popper-group-by-directory ()
   "Return an identifier (default directory) to group popups.
 
 The project root is used if found by project, with the default
@@ -224,7 +217,7 @@ directory as a fall back."
            (project-root (project-current)))
       (expand-file-name default-directory)))
 
-(defun popper-popup-identifier-project ()
+(defun popper-group-by-project ()
   "Return an identifier (project root) to group popups."
   (unless (fboundp 'project-root)
     (user-error "Cannot find project directory to group popups.
@@ -232,7 +225,7 @@ directory as a fall back."
   `popper-group-function'"))
   (project-root (project-current)))
 
-(defun popper-popup-identifier-projectile ()
+(defun popper-group-by-projectile ()
   "Return an identifier to group popups.
 
 This returns the project root found using the projectile package."
@@ -287,10 +280,10 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                             (funcall popper-group-function))
                           popper-buried-popup-alist
                           nil nil 'equal)
-                         (push (cons win buf)
-                               (cl-remove (cons win buf)
-                                          identifier-popups
-                                          :key 'cdr)))))
+                         (append (list (cons win buf))
+                                 (cl-remove (cons win buf)
+                                            identifier-popups
+                                            :key 'cdr)))))
            (setf (alist-get nil popper-buried-popup-alist)
                  (append closed-popups
                          (cl-set-difference (cdr (assoc nil popper-buried-popup-alist))
@@ -376,11 +369,14 @@ a popup buffer to open."
                                              (default-value 'mode-line-format)))))))
 
 (defun popper-restore-mode-lines (win-buf-alist)
-  "Restore the default value of `mode-line-format' in
-popup-buffers in the list WIN-BUF-ALIST."
-  (dolist (winbuf win-buf-alist)
-    (with-current-buffer (cdr winbuf)
-      (setq mode-line-format (default-value 'mode-line-format)))))
+  "Restore the default value of `mode-line-format'.
+
+This applies to popup-buffers in the list WIN-BUF-ALIST."
+  (dolist (buf (mapcar 'cdr win-buf-alist))
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (setq mode-line-format (default-value 'mode-line-format))
+        (force-mode-line-update)))))
 
 (defun popper-bury-all ()
   "Bury all open popups."

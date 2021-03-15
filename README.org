@@ -2,6 +2,8 @@
 
 A minor-mode to help with the Emacs window flood. Designate any buffer to "popup" status, and it will stay out of your way. Disimss or summon it easily with one key. Useful for many things, including toggling display of REPLs, documentation, compilation or shell output, etc.
 
+There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]].
+
 popper can place your popups for you, but it works best in conjunction
 with some system to handle window creation and placement, like =shackle.el=.
 This plugin summons windows defined by the user as "popups" by simply calling
@@ -33,18 +35,20 @@ You can also promote a popup to a normal window.
 * Usage
 To designate popups in your init file, see the customization section.
 
-There are three commands of note, you can bind them as convenient:
+There are two primary commands, you can bind them as convenient:
 
 - =popper-toggle-latest=: Show/hide the latest popup. Does more with prefix args.
 - =popper-cycle=: Cycle through your popups in sequence. With a prefix arg, cycle backwards.
-- =popper-toggle-type=: Turn a regular window into a popup or a popup into a regular window.
-  
+
+Additionally, you can turn a regular window into a popup (or vice-versa) with =popper-toggle-type=, and kill an open popup buffer with =popper-kill-latest-popup=.
+
 * Setup 
-=popper= is not part of any package archive, so you will need to ensure it's on the Emacs =load-path= somewhere.
+=popper= is available in MELPA, so you can install it with =M-x package-install RET popper RET= after adding MELPA to your package archives list.
+
 ** With =use-package=
 #+BEGIN_SRC emacs-lisp
   (use-package popper
-    :load-path "/path/to/popper/"                                   
+    :ensure t
     :bind (("C-`"   . popper-toggle-latest)
            ("M-`"   . popper-cycle)
            ("C-M-`" . popper-toggle-type))
@@ -58,7 +62,7 @@ There are three commands of note, you can bind them as convenient:
 #+END_SRC
 See [[*Customization][Customization]] for details on specifying buffer types as popups.
 
-** General
+** Without =use-package=
 #+BEGIN_SRC emacs-lisp
   (require 'popper)
   (setq popper-reference-buffers
@@ -92,6 +96,11 @@ To get started, customize this variable:
   Will treat the following as popups: The Messages buffer, any buffer ending in "Output*", and all help and compilation buffers.
 
   There are other customization options, check the =popper= group.
+
+** Grouping popups by context
+Popper can group popups by "context", so that the popups available for display are limited to those that are relevant to the context in which =popper-toggle-latest= or =popper-cycle= is called. For example, when cycling popups from a project buffer, you may only want to see the popups (REPLs, help buffers and compilation output, say) that were spawned from buffers in that project. This is intended to approximate DWIM behavior, so that the most relevant popup in any context is never more than one command away.
+
+Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, as well as the default directory of a buffer. To set this, customize =popper-group-function=. You can also provide a custom function that takes no arguments, is executed in the context of a popup buffer and returns a string or symbol that represents the group/context it belongs to.
 
 **  Managing window placement
 In keeping with the principle of least surprise, all popups are shown in the same location: At the bottom of the frame. However this means you can't have more than one popup open at a time. You may also want more control over where individual popups appear. For example, you may want an IDE-like set-up, with all help windows open on the right, REPLs on top and compilation windows at the bottom. This is best done by customizing Emacs' =display-buffer-alist=. Since this is a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html#The-Zen-of-Buffer-Display][singularly confusing task]], I recommend using =popper= with a package that locks window placements, /e.g./ [[https://depp.brause.cc/shackle/][Shackle]].
