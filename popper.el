@@ -33,6 +33,9 @@
 ;; hood popper summons windows defined by the user as "popups" by simply calling
 ;; `display-buffer'.
 ;;
+;; For a demo describing usage and customization see
+;; https://www.youtube.com/watch?v=E-xUNlZi3rI
+;;
 ;; COMMANDS:
 ;;
 ;; popper-toggle-latest : Toggle latest popup
