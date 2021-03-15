@@ -87,8 +87,8 @@ To get started, customize this variable:
   Example: 
 
   #+BEGIN_SRC emacs-lisp
-    '("\\\*Messages\\\*"
-      "Output\\\*$"
+    '("\\*Messages\\*"
+      "Output\\*$"
       help-mode
       compilation-mode)
   #+END_SRC
