@@ -205,7 +205,9 @@ This is intended to be used in `display-buffer-alist'."
        (with-current-buffer buffer
          (eq popper-popup-status 'user-popup)))
       ('t (with-current-buffer buffer
-            (memq popper-popup-status '(popup user-popup)))))))
+            (or (memq popper-popup-status '(popup user-popup))
+                (unless (eq popper-popup-status 'raised)
+                  (popper-popup-p buffer))))))))
 
 (defun popper-group-by-directory ()
   "Return an identifier (default directory) to group popups.
@@ -254,7 +256,7 @@ Each element of the alist is a cons cell of the form (window . buffer)."
 (defun popper-update-popups ()
   "Update the list of currently open popups.
 
- Meant to be added to `window-configuration-change-hook'."
+ Intended to be added to `window-configuration-change-hook'."
   (let* ((open-buffers (mapcar #'window-buffer (window-list)))
          (open-popups (popper-find-popups open-buffers))
          (closed-popups (cl-remove-if-not
