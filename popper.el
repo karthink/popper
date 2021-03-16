@@ -321,22 +321,23 @@ Each element of the alist is a cons cell of the form (window . buffer)."
   (if (null popper-open-popup-alist)
       (message "No open popups!")
     (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
-      (when (and (window-valid-p win) (window-parent win))
+      (let ((group (when popper-group-function
+                     (with-current-buffer buf
+                       (funcall popper-group-function)))))
+        (unless (cl-member buf
+                           (cdr (assoc group popper-buried-popup-alist))
+                           :key 'cdr)
+          ;; buffer doesn't already exist in the buried popup list
+          (push (cons nil buf) (alist-get group
+                                          popper-buried-popup-alist
+                                          nil nil 'equal))))
+      (pop popper-open-popup-alist)
+      (with-selected-window win
+        (bury-buffer)
         ;;only close window when window has a parent:
-        (let ((group (when popper-group-function
-                       (with-current-buffer buf
-                         (funcall popper-group-function)))))
-          (unless (cl-member buf
-                             (cdr (assoc group popper-buried-popup-alist))
-                             :key 'cdr)
-            ;; buffer doesn't already exist in the buried popup list
-            (push (cons nil buf) (alist-get group
-                                            popper-buried-popup-alist
-                                            nil nil 'equal))))
-        (pop popper-open-popup-alist)
-        (with-selected-window win
-          (bury-buffer buf)
-          (delete-window win))))))
+        (if (and (window-valid-p win)
+                 (window-parent win))
+            (delete-window win))))))
 
 (defun popper-open-latest (&optional group)
   "Open the last closed popup.
