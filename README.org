@@ -1,11 +1,11 @@
 #+title: Popper.el
 
-A minor-mode to help with the Emacs window flood. Designate any buffer to
-"popup" status, and it will stay out of your way. Disimss or summon it easily
-with one key. Cycle through all your "popups" or just the ones relevant to your
-current buffer. Tame the flood of ephemeral windows Emacs produces. Useful for
-many things, including toggling display of REPLs, documentation, compilation or
-shell output, etc.
+Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces
+while still keeping them at arms reach. Designate any buffer to "popup" status,
+and it will stay out of your way. Disimss or summon it easily with one key.
+Cycle through all your "popups" or just the ones relevant to your current
+buffer. Useful for many things, including toggling display of REPLs,
+documentation, compilation or shell output, etc.
 
 There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]].
 
@@ -54,7 +54,7 @@ Additionally, you can turn a regular window into a popup (or vice-versa) with =p
 ** With =use-package=
 #+BEGIN_SRC emacs-lisp
   (use-package popper
-    :ensure t
+    :ensure t ; or :straight t
     :bind (("C-`"   . popper-toggle-latest)
            ("M-`"   . popper-cycle)
            ("C-M-`" . popper-toggle-type))
@@ -119,7 +119,7 @@ Built in contexts include projects as defined in Emacs' built in =project.el= an
                                                            ; default-directory
 #+END_SRC
 
-You can also provide a custom function that takes no arguments, is executed in the context of a popup buffer and returns a string or symbol that represents the group/context it belongs to. This function will group all popups under the symbol ='my-popup-group=:
+You can also provide a custom function that takes no arguments, is executed in the context of a popup buffer and returns a string or symbol that represents the group/context it belongs to. This function will group all popups under the symbol =my-popup-group=:
 
 #+BEGIN_SRC emacs-lisp
   (defun popper-group-by-my-rule ()
@@ -143,9 +143,9 @@ However this means you can't have more than one popup open at a time. You may al
 #+end_src
 
 You can customize =popper-display-function= to show popups any way you'd like.
-Any =display-buffer= action function can work, or you can write your own. For
-example, setting it to =display-buffer-in-child-frame= will cause popups to show
-up in a child frame.
+Any =display-buffer= [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Buffer-Display-Action-Functions.html][action function]] can work, or you can write your own. For
+example, setting it to =display-buffer-in-child-frame= will cause popups to be
+displayed in a child frame.
 
 *** Popup placement controlled using =display-buffer-alist= or =shackle.el=:
 If you already have rules in place for how various buffers should be displayed, such as by customizing =display-buffer-alist= or with =shackle.el=, popper will respect them: 
