@@ -334,10 +334,12 @@ Each element of the alist is a cons cell of the form (window . buffer)."
       (pop popper-open-popup-alist)
       (with-selected-window win
         (bury-buffer)
-        ;;only close window when window has a parent:
+        ;;only close window when window has a parent or in a child frame:
         (if (and (window-valid-p win)
                  (window-parent win))
-            (delete-window win))))))
+            (delete-window win)
+          (if (frame-parent)
+              (delete-frame)))))))
 
 (defun popper-open-latest (&optional group)
   "Open the last closed popup.
