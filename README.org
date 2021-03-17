@@ -1,9 +1,9 @@
 #+title: Popper.el
 
-Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces
-while still keeping them at arms reach. Designate any buffer to "popup" status,
-and it will stay out of your way. Disimss or summon it easily with one key.
-Cycle through all your "popups" or just the ones relevant to your current
+Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
+while still keeping them within arm's reach. Designate any buffer to "popup"
+status, and it will stay out of your way. Disimss or summon it easily with one
+key. Cycle through all your "popups" or just the ones relevant to your current
 buffer. Useful for many things, including toggling display of REPLs,
 documentation, compilation or shell output, etc.
 
@@ -11,33 +11,31 @@ There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Poppe
 
 By default, popper will display your popups in a non-obtrusive way, but it works
 best in conjunction with some system to handle window creation and placement,
-like =shackle.el=. This plugin summons windows defined by the user as "popups"
+like =shackle.el=. This package summons windows defined by the user as "popups"
 by simply calling =display-buffer=.
 
 You can pre-designate any buffer (by name or major-mode) as a popup, and the
-status will be automatically applied.
+status will be automatically applied when Emacs creates it.
 
-Toggle a popup: 
+**** Toggle a popup: 
 #+ATTR_ORG: :width 500
 #+ATTR_HTML: :width 500px
 [[file:images/popper-toggle-latest.gif]]
-
-Cycle through all your popups:
+**** Cycle through all your popups:
 #+ATTR_ORG: :width 500
 #+ATTR_HTML: :width 500px
 [[file:images/popper-cycle.gif]]
-
-Turn a regular window into a popup:
+**** Turn a regular window into a popup:
 #+ATTR_ORG: :width 500
 #+ATTR_HTML: :width 500px
 [[file:images/popper-demote.gif]]
 
-Or toggle all your popups at once:
+You can also promote a popup to a normal window.
+**** Or toggle all your popups at once:
 #+ATTR_ORG: :width 500
 #+ATTR_HTML: :width 500px
 [[file:images/popper-toggle-all.gif]]
 
-You can also promote a popup to a normal window.
 * Usage
 To designate popups in your init file, see the customization section.
 
@@ -158,6 +156,7 @@ If you already have rules in place for how various buffers should be displayed, 
   (use-package popper
   ;; -- popper customizations here--
 
+  :config
   (setq popper-display-control nil))
 #+end_src
 
