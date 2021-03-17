@@ -9,7 +9,7 @@ shell output, etc.
 
 There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]].
 
-By default, popper will display your popups in an obtrusive way, but it works
+By default, popper will display your popups in a non-obtrusive way, but it works
 best in conjunction with some system to handle window creation and placement,
 like =shackle.el=. This plugin summons windows defined by the user as "popups"
 by simply calling =display-buffer=.
