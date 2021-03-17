@@ -3,8 +3,9 @@
 A minor-mode to help with the Emacs window flood. Designate any buffer to
 "popup" status, and it will stay out of your way. Disimss or summon it easily
 with one key. Cycle through all your "popups" or just the ones relevant to your
-current buffer. Useful for many things, including toggling display of REPLs,
-documentation, compilation or shell output, etc.
+current buffer. Tame the flood of ephemeral windows Emacs produces. Useful for
+many things, including toggling display of REPLs, documentation, compilation or
+shell output, etc.
 
 There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]].
 
