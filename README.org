@@ -1,15 +1,20 @@
 #+title: Popper.el
 
-A minor-mode to help with the Emacs window flood. Designate any buffer to "popup" status, and it will stay out of your way. Disimss or summon it easily with one key. Useful for many things, including toggling display of REPLs, documentation, compilation or shell output, etc.
+A minor-mode to help with the Emacs window flood. Designate any buffer to
+"popup" status, and it will stay out of your way. Disimss or summon it easily
+with one key. Cycle through all your "popups" or just the ones relevant to your
+current buffer. Useful for many things, including toggling display of REPLs,
+documentation, compilation or shell output, etc.
 
 There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]].
 
-popper can place your popups for you, but it works best in conjunction
-with some system to handle window creation and placement, like =shackle.el=.
-This plugin summons windows defined by the user as "popups" by simply calling
-=display-buffer=.
+By default, popper will display your popups in an obtrusive way, but it works
+best in conjunction with some system to handle window creation and placement,
+like =shackle.el=. This plugin summons windows defined by the user as "popups"
+by simply calling =display-buffer=.
 
-You can pre-designate any buffer (by name or major-mode) as a popup, and the status will be applied after window creation. 
+You can pre-designate any buffer (by name or major-mode) as a popup, and the
+status will be automatically applied.
 
 Toggle a popup: 
 #+ATTR_ORG: :width 500
@@ -100,25 +105,56 @@ To get started, customize this variable:
 ** Grouping popups by context
 Popper can group popups by "context", so that the popups available for display are limited to those that are relevant to the context in which =popper-toggle-latest= or =popper-cycle= is called. For example, when cycling popups from a project buffer, you may only want to see the popups (REPLs, help buffers and compilation output, say) that were spawned from buffers in that project. This is intended to approximate DWIM behavior, so that the most relevant popup in any context is never more than one command away.
 
-Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, as well as the default directory of a buffer. To set this, customize =popper-group-function=. You can also provide a custom function that takes no arguments, is executed in the context of a popup buffer and returns a string or symbol that represents the group/context it belongs to.
+Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, as well as the default directory of a buffer. To set this, customize =popper-group-function= or use one of
 
-**  Managing window placement
-In keeping with the principle of least surprise, all popups are shown in the same location: At the bottom of the frame. However this means you can't have more than one popup open at a time. You may also want more control over where individual popups appear. For example, you may want an IDE-like set-up, with all help windows open on the right, REPLs on top and compilation windows at the bottom. This is best done by customizing Emacs' =display-buffer-alist=. Since this is a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html#The-Zen-of-Buffer-Display][singularly confusing task]], I recommend using =popper= with a package that locks window placements, /e.g./ [[https://depp.brause.cc/shackle/][Shackle]].
+#+BEGIN_SRC emacs-lisp
+  (setq popper-group-function #'popper-group-by-project) ; project.el projects
+
+  (setq popper-group-function #'popper-group-by-projectile) ; projectile projects
+
+  (setq popper-group-function #'popper-group-by-directory) ; group by project.el
+                                                           ; project root, with
+                                                           ; fall back to
+                                                           ; default-directory
+#+END_SRC
+
+You can also provide a custom function that takes no arguments, is executed in the context of a popup buffer and returns a string or symbol that represents the group/context it belongs to. This function will group all popups under the symbol ='my-popup-group=:
+
+#+BEGIN_SRC emacs-lisp
+  (defun popper-group-by-my-rule ()
+  "This function is called with each popup buffer as current, so
+  you can use buffer-local variables. This function should return
+  a string or symbol that acts as the group name for this
+  buffer."
+  'my-popup-group)
+
+  (setq popper-group-function #'popper-group-by-my-rule)
+#+END_SRC
+
+**  Managing popup placement
+In keeping with the principle of least surprise, all popups are shown in the same location: At the bottom of the frame. You can customize =popper-display-function= to change how popups are displayed.
+
+However this means you can't have more than one popup open at a time. You may also want more control over where individual popups appear. For example, you may want an IDE-like set-up, with all help windows open on the right, REPLs on top and compilation windows at the bottom. This is best done by customizing Emacs' =display-buffer-alist=. Since this is a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html#The-Zen-of-Buffer-Display][singularly confusing task]], I recommend using =popper= with a package that locks window placements, /e.g./ [[https://depp.brause.cc/shackle/][Shackle]].
 
 *** Default popup placement:
 #+begin_src emacs-lisp
-  (setq popper-display-control t)  ;This is the DEFAULT behavior, you don't need this
+  (setq popper-display-control t)  ;This is the DEFAULT behavior
 #+end_src
 
+You can customize =popper-display-function= to show popups any way you'd like.
+Any =display-buffer= action function can work, or you can write your own. For
+example, setting it to =display-buffer-in-child-frame= will cause popups to show
+up in a child frame.
+
 *** Popup placement controlled using =display-buffer-alist= or =shackle.el=:
+If you already have rules in place for how various buffers should be displayed, such as by customizing =display-buffer-alist= or with =shackle.el=, popper will respect them: 
+
 #+begin_src emacs-lisp
   (use-package shackle
-   :config
    ;; -- shackle rules here --
    )
 
-  (use-package poup-buffers
-  :config
+  (use-package popper
   ;; -- popper customizations here--
 
   (setq popper-display-control nil))
