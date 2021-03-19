@@ -25,13 +25,13 @@
 ;;
 ;;; Commentary:
 
-;; This package provides a minor-mode to designate buffers as "popups" and
-;; summon and dismiss them with a key. Useful for many things, including
-;; toggling REPLS, documentation, compilation or shell output, etc. This package
-;; will place buffers on your screen, but it works best in conjunction with some
-;; system to handle window creation and placement, like shackle.el. Under the
-;; hood popper summons windows defined by the user as "popups" by simply calling
-;; `display-buffer'.
+;; Popper is a minor-mode to tame the flood of ephemeral windows Emacs
+;; produces, while still keeping them within arm's reach. Designate any
+;; buffer to "popup" status, and it will stay out of your way. Disimss
+;; or summon it easily with one key. Cycle through all your "popups" or
+;; just the ones relevant to your current buffer. Useful for many
+;; things, including toggling display of REPLs, documentation,
+;; compilation or shell output, etc.
 ;;
 ;; For a demo describing usage and customization see
 ;; https://www.youtube.com/watch?v=E-xUNlZi3rI
@@ -46,18 +46,25 @@
 ;; CUSTOMIZATION:
 ;;
 ;; `popper-reference-buffers': A list of major modes or regexps whose
-;; corresponding buffer major-modes or regexps (respectively) should be treated
-;; as popups.
+;; corresponding buffer major-modes or regexps (respectively) should be
+;; treated as popups.
 ;;
 ;; `popper-mode-line': String or sexp to show in the mode-line of
 ;; popper. Setting this to nil removes the mode-line entirely from
 ;; popper.
 ;;
-;; `popper-group-function': Function that returns the context a popup should be
-;; shown in. The context is a string or symbol used to group together a set of
-;; buffers and their associated popups, such as the project root. See
-;; documentation for available options.
-
+;; `popper-group-function': Function that returns the context a popup
+;; should be shown in. The context is a string or symbol used to group
+;; together a set of buffers and their associated popups, such as the
+;; project root. Customize for available options.
+;;
+;; `popper-display-control': This package summons windows defined by the
+;; user as popups by simply calling `display-buffer'. By default,
+;; it will display your popups in a non-obtrusive way. If you want
+;; Popper to display popups according to window rules you specify in
+;; `display-buffer-alist' (or through a package like Shackle), set this
+;; variable to nil.
+;;
 ;;; Code:
 
 (require 'cl-lib)
@@ -481,7 +488,11 @@ If BUFFER is not specified act on the current buffer instead."
   (interactive)
   (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
     (pop popper-open-popup-alist)
-    (delete-window win)
+    (if (and (window-valid-p win)
+             (window-parent win))
+            (delete-window win)
+          (if (frame-parent)
+              (delete-frame)))
     (kill-buffer buf)))
 
 ;;;###autoload

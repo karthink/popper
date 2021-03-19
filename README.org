@@ -121,11 +121,11 @@ You can also provide a custom function that takes no arguments, is executed in t
 
 #+BEGIN_SRC emacs-lisp
   (defun popper-group-by-my-rule ()
-  "This function is called with each popup buffer as current, so
-  you can use buffer-local variables. This function should return
-  a string or symbol that acts as the group name for this
-  buffer."
-  'my-popup-group)
+    "This function should return a string or symbol that is the
+  name of the group this buffer belongs to. It is called with each
+  popup buffer as current, so you can use buffer-local variables."
+
+    'my-popup-group)
 
   (setq popper-group-function #'popper-group-by-my-rule)
 #+END_SRC
