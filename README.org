@@ -9,13 +9,13 @@ documentation, compilation or shell output, etc.
 
 There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]].
 
-By default, popper will display your popups in a non-obtrusive way, but it works
-best in conjunction with some system to handle window creation and placement,
-like =shackle.el=. This package summons windows defined by the user as "popups"
-by simply calling =display-buffer=.
-
 You can pre-designate any buffer (by name or major-mode) as a popup, and the
 status will be automatically applied when Emacs creates it.
+
+By default, your popups are displayed in a non-obtrusive way, but Popper
+respects window rules for buffers that you might have in =display-buffer-alist=
+or created using a window management package like =shackle.el=. Popper summons
+windows defined by the user as "popups" by simply calling =display-buffer=.
 
 **** Toggle a popup: 
 #+ATTR_ORG: :width 500
@@ -139,14 +139,16 @@ However this means you can't have more than one popup open at a time. You may al
 #+begin_src emacs-lisp
   (setq popper-display-control t)  ;This is the DEFAULT behavior
 #+end_src
-
 You can customize =popper-display-function= to show popups any way you'd like.
 Any =display-buffer= [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Buffer-Display-Action-Functions.html][action function]] can work, or you can write your own. For
-example, setting it to =display-buffer-in-child-frame= will cause popups to be
-displayed in a child frame.
+example, setting it as
+#+BEGIN_SRC emacs-lisp
+  (setq popper-display-function #'display-buffer-in-child-frame)
+#+END_SRC
+will cause popups to be displayed in a child frame.
 
 *** Popup placement controlled using =display-buffer-alist= or =shackle.el=:
-If you already have rules in place for how various buffers should be displayed, such as by customizing =display-buffer-alist= or with =shackle.el=, popper will respect them: 
+If you already have rules in place for how various buffers should be displayed, such as by customizing =display-buffer-alist= or with =shackle.el=, popper will respect them once you set =popper-display-control= to nil:
 
 #+begin_src emacs-lisp
   (use-package shackle
