@@ -104,7 +104,7 @@ To get started, customize this variable:
 ** Grouping popups by context
 Popper can group popups by "context", so that the popups available for display are limited to those that are relevant to the context in which =popper-toggle-latest= or =popper-cycle= is called. For example, when cycling popups from a project buffer, you may only want to see the popups (REPLs, help buffers and compilation output, say) that were spawned from buffers in that project. This is intended to approximate DWIM behavior, so that the most relevant popup in any context is never more than one command away.
 
-Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, as well as the default directory of a buffer. To set this, customize =popper-group-function= or use one of
+Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, using =perspective= names, as well as the default directory of a buffer. To set this, customize =popper-group-function= or use one of
 
 #+BEGIN_SRC emacs-lisp
   (setq popper-group-function #'popper-group-by-project) ; project.el projects
@@ -115,6 +115,7 @@ Built in contexts include projects as defined in Emacs' built in =project.el= an
                                                            ; project root, with
                                                            ; fall back to
                                                            ; default-directory
+  (setq popper-group-function #'popper-group-by-perspective) ; group by perspective
 #+END_SRC
 
 You can also provide a custom function that takes no arguments, is executed in the context of a popup buffer and returns a string or symbol that represents the group/context it belongs to. This function will group all popups under the symbol =my-popup-group=:
