@@ -73,6 +73,7 @@
 (declare-function project-root "project")
 (declare-function project-current "project")
 (declare-function projectile-project-root "projectile")
+(declare-function persp-current-name "perspective")
 
 (defvar popper-mode)
 
@@ -151,12 +152,14 @@ Built-in choices include
 
 `popper-group-by-directory': Return project root or default directory.
 `popper-group-by-project': Return project root using project.el.
-`popper-group-by-projectile': Return project root using projectile."
+`popper-group-by-projectile': Return project root using projectile.
+`popper-group-by-perspective': Return perspective name."
   :group 'popper
   :type '(choice
           (const :tag "Don't group popups" nil)
           (const :tag "Group by project (project.el)" popper-group-by-project)
           (const :tag "Group by project (projectile)" popper-group-by-projectile)
+		  (const :tag "Group by perspective" popper-group-by-perspective)
           (const :tag "Group by directory" popper-group-by-directory)
           (function :tag "Custom function")))
 
@@ -242,6 +245,16 @@ This returns the project root found using the projectile package."
   Please install `projectile' or customize
   `popper-group-function'"))
   (projectile-project-root))
+
+(defun popper-group-by-perspective ()
+  "Return an identifier to group popups.
+
+This returns the name of the perspective."
+  (unless (fboundp 'persp-current-name)
+	(user-error "Cannot find perspective name to group popups.
+  Please install `perspective' or customize
+  `popper-group-function'"))
+  (persp-current-name))
 
 (defun popper-find-popups (test-buffer-list)
   "Return an alist corresponding to popups in TEST-BUFFER-LIST.
