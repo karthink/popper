@@ -159,7 +159,7 @@ Built-in choices include
           (const :tag "Don't group popups" nil)
           (const :tag "Group by project (project.el)" popper-group-by-project)
           (const :tag "Group by project (projectile)" popper-group-by-projectile)
-		  (const :tag "Group by perspective" popper-group-by-perspective)
+          (const :tag "Group by perspective" popper-group-by-perspective)
           (const :tag "Group by directory" popper-group-by-directory)
           (function :tag "Custom function")))
 
@@ -251,7 +251,7 @@ This returns the project root found using the projectile package."
 
 This returns the name of the perspective."
   (unless (fboundp 'persp-current-name)
-	(user-error "Cannot find perspective name to group popups.
+    (user-error "Cannot find perspective name to group popups.
   Please install `perspective' or customize
   `popper-group-function'"))
   (persp-current-name))
