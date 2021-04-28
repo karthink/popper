@@ -99,6 +99,11 @@ Output*, and all help and compilation buffers."
   :type '(restricted-sexp :match-alternatives (stringp symbolp))
   :group 'popper)
 
+(defcustom popper-reference-hidden-buffers '()
+  ""
+  :type '(restricted-sexp :match-alternatives (stringp symbolp))
+  :group 'popper)
+
 (defcustom popper-mode-line '(:eval (propertize " POP" 'face 'mode-line-emphasis))
   "String or sexp to show in the mode-line of popper.
 
@@ -200,6 +205,31 @@ grouped by the predicate `popper-group-function'.")
                    (side . bottom)
                    (slot . 1)))))
     (select-window window)))
+
+(defun popper-hidden-buffer-p (buffer)
+  (catch 'done
+    (dolist (hidden popper-reference-hidden-buffers nil)
+      (when (or (and (stringp hidden)
+                     (string-match-p hidden (buffer-name buffer)))
+                (and (symbolp hidden)
+                     (eq (buffer-local-value 'major-mode buffer))))
+        (throw 'done t)))))
+
+(defun popper-select-popup-at-bottom-maybe-hide (buffer &optional _alist)
+  "Display and switch to popup-buffer BUFFER at the bottom of the screen.
+
+Hide buffers in `popper-reference-buffers-hidden'."
+  (if (popper-hidden-buffer-p buffer)
+      (display-buffer-no-window buffer '((allow-no-window . t)))
+    (let ((window (display-buffer-in-side-window
+                   buffer
+                   '((window-height . (lambda (win)
+                                        (fit-window-to-buffer
+                                         win
+                                         (floor (frame-height) 3))))
+                     (side . bottom)
+                     (slot . 1)))))
+      (select-window window))))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF meets the criteria listed in `popper-reference-buffers'."
@@ -505,9 +535,13 @@ details on how to designate buffer types as popups."
       ;; Turning the mode ON
       (progn
         (setq popper-reference-names
-              (cl-remove-if-not #'stringp popper-reference-buffers)
+              (cl-remove-if-not #'stringp
+                                (append popper-reference-buffers
+                                        popper-reference-hidden-buffers))
               popper-reference-modes
-              (cl-remove-if-not #'symbolp popper-reference-buffers))
+              (cl-remove-if-not #'symbolp
+                                (append popper-reference-buffers
+                                        popper-reference-hidden-buffers)))
         (popper-find-buried-popups)
         (popper-update-popups)
         (add-hook 'window-configuration-change-hook #'popper-update-popups)
