@@ -178,6 +178,9 @@ Built-in choices include
 If `popper-group-function' is non-nil, these are
 grouped by the predicate `popper-group-function'.")
 
+(defvar popper-lighter ""
+  "Lighter for `popper-mode'.")
+
 (defvar-local popper-popup-status nil
   "Identifies a buffer as a popup by its buffer-local value.
   Valid values are 'popup, 'raised, 'user-popup or nil.
@@ -516,7 +519,7 @@ dismissed with a command. See the customization options for
 details on how to designate buffer types as popups."
   :global t
   :version "0.30"
-  :lighter ""
+  :lighter popper-lighter
   :group 'popper
   :keymap (let ((map (make-sparse-keymap))) map)
   (if popper-mode
