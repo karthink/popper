@@ -312,20 +312,20 @@ Each element of the alist is a cons cell of the form (window . buffer)."
          (open-popups (cl-remove-if-not
                        (lambda (win-buf) (windowp (car win-buf)))
                        popups))
-         (closed-popups (cl-set-difference popups open-popups :key #'cdr))
-         buried-alist)
+         (closed-popups (cl-set-difference popups open-popups :key #'cdr)))
     (setq popper-open-popup-alist (nreverse open-popups))
+    (setq popper-buried-popup-alist nil)
     (if popper-group-function
         (cl-loop for (win . buf) in closed-popups do
                  (let ((group (with-current-buffer buf
                                 (funcall popper-group-function)))
                        (newelt (cons win buf)))
-                   (if (alist-get group buried-alist)
-                       (push newelt (alist-get group buried-alist))
-                     (push (cons group (list newelt)) buried-alist)))
-                 finally
-                 (setq popper-buried-popup-alist buried-alist))
-      (setq popper-buried-popup-alist closed-popups)))
+                   (if (alist-get group popper-buried-popup-alist)
+                       (push newelt (alist-get group
+                                               popper-buried-popup-alist))
+                     (push (cons group (list newelt))
+                           popper-buried-popup-alist))))
+      (setq popper-buried-popup-alist (list (cons nil closed-popups)))))
   ;; Mode line update
   (cl-loop for (_ . buf) in popper-open-popup-alist do
            (with-current-buffer buf
