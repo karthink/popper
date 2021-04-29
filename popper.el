@@ -100,7 +100,14 @@ Output*, and all help and compilation buffers."
   :group 'popper)
 
 (defcustom popper-reference-hidden-buffers '()
-  ""
+  "List of buffers to treat as hidden popups.
+
+This elements of this list take the same format as in
+`popper-reference-buffers'. When the value of
+`popper-display-function' is set to
+`popper-select-popup-at-bottom-maybe-hide', the buffers in this
+list will not be shown by default unless explicitly asked for via
+a function like `popper-toggle-latest'. "
   :type '(restricted-sexp :match-alternatives (stringp symbolp))
   :group 'popper)
 
@@ -210,6 +217,7 @@ grouped by the predicate `popper-group-function'.")
     (select-window window)))
 
 (defun popper-hidden-buffer-p (buffer)
+  "Check if BUFFER matches a buffer in `popper-reference-hidden-buffers'."
   (catch 'done
     (dolist (hidden popper-reference-hidden-buffers nil)
       (when (or (and (stringp hidden)
@@ -221,7 +229,8 @@ grouped by the predicate `popper-group-function'.")
 (defun popper-select-popup-at-bottom-maybe-hide (buffer &optional _alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen.
 
-Hide buffers in `popper-reference-buffers-hidden'."
+Don't show the buffer automatically if it is listed in
+`popper-reference-buffers-hidden'."
   (if (and (popper-hidden-buffer-p buffer)
            (null popper-calling-display-buffer))
       (display-buffer-no-window buffer '((allow-no-window . t)))
