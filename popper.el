@@ -186,6 +186,9 @@ grouped by the predicate `popper-group-function'.")
 (defvar popper-lighter ""
   "Lighter for `popper-mode'.")
 
+(defvar popper-calling-display-buffer nil
+  "Flag to track when popper is explicitly calling `display-buffer'.")
+
 (defvar-local popper-popup-status nil
   "Identifies a buffer as a popup by its buffer-local value.
   Valid values are 'popup, 'raised, 'user-popup or nil.
@@ -219,7 +222,8 @@ grouped by the predicate `popper-group-function'.")
   "Display and switch to popup-buffer BUFFER at the bottom of the screen.
 
 Hide buffers in `popper-reference-buffers-hidden'."
-  (if (popper-hidden-buffer-p buffer)
+  (if (and (popper-hidden-buffer-p buffer)
+           (null popper-calling-display-buffer))
       (display-buffer-no-window buffer '((allow-no-window . t)))
     (let ((window (display-buffer-in-side-window
                    buffer
@@ -391,7 +395,8 @@ a popup buffer to open."
                                            nil 'remove 'equal)))
                 (buf (cdr new-popup)))
           (if (buffer-live-p buf)
-              (progn (display-buffer buf))
+              (let ((popper-calling-display-buffer t))
+                (display-buffer buf))
             (popper-open-latest))
         (message no-popup-msg)))))
 
