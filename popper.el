@@ -215,7 +215,7 @@ grouped by the predicate `popper-group-function'.")
       (when (or (and (stringp hidden)
                      (string-match-p hidden (buffer-name buffer)))
                 (and (symbolp hidden)
-                     (eq (buffer-local-value 'major-mode buffer))))
+                     (eq (buffer-local-value 'major-mode buffer) hidden)))
         (throw 'done t)))))
 
 (defun popper-select-popup-at-bottom-maybe-hide (buffer &optional _alist)
