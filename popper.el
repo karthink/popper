@@ -508,6 +508,16 @@ If BUFFER is not specified act on the current buffer instead."
               (delete-frame)))
     (kill-buffer buf)))
 
+(defun popper-suppress-popups ()
+  "TODO: Suppress open popups in the user-defined
+  `popper-suppress-buffers' list. This should run after
+  `popper-update-popups' in `window-configuration-change-hook'."
+
+  
+  
+
+)
+
 ;;;###autoload
 (define-minor-mode popper-mode
   "Toggle Popper mode. When enabled, treat certain buffer
