@@ -186,14 +186,17 @@ grouped by the predicate `popper-group-function'.")
 'raised    : This is a POPUP buffer raised to regular status by the user.
 'user-popup: This is a regular buffer lowered to popup status by the user.")
 
+(defun popper-determine-window-height (win)
+  "Determine the popper window height by fitting it to the buffer's content."
+  (fit-window-to-buffer
+   win
+   (floor (frame-height) 3)))
+
 (defun popper-select-popup-at-bottom (buffer &optional _alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
   (let ((window (display-buffer-in-side-window
                  buffer
-                 '((window-height . (lambda (win)
-                                      (fit-window-to-buffer
-                                       win
-                                       (floor (frame-height) 3))))
+                 '((window-height . popper-determine-window-height)
                    (side . bottom)
                    (slot . 1)))))
     (select-window window)))
