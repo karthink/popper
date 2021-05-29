@@ -163,6 +163,30 @@ Built-in choices include
           (const :tag "Group by directory" popper-group-by-directory)
           (function :tag "Custom function")))
 
+(defcustom popper-window-height #'popper--fit-window-height
+  "Specify the height of the popup window. 
+
+This can be a number representing the height in chars or a
+function that optionally takes one argument (the popup window)
+and returns the height in chars. This option is ignored when
+`popper-display-control' is set to nil.
+
+Examples:
+
+;; Popup windows are always 20 chars tall
+20
+
+;; The default, scale window height with buffer size up to 33% of
+the frame height.
+(lambda (win)
+  (fit-window-to-buffer
+   win
+   (floor (frame-height) 3)))
+"
+  :group 'popper
+  :type '(choice (integer :tag "Height in chars")
+                 (function :tag "Height function")))
+
 (defvar popper-reference-names nil
   "List of buffer names whose windows are treated as popups.")
 
@@ -186,14 +210,17 @@ grouped by the predicate `popper-group-function'.")
 'raised    : This is a POPUP buffer raised to regular status by the user.
 'user-popup: This is a regular buffer lowered to popup status by the user.")
 
+(defun popper--fit-window-height (win)
+  "Determine the popper window height by fitting it to the buffer's content."
+  (fit-window-to-buffer
+   win
+   (floor (frame-height) 3)))
+
 (defun popper-select-popup-at-bottom (buffer &optional _alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
   (let ((window (display-buffer-in-side-window
                  buffer
-                 '((window-height . (lambda (win)
-                                      (fit-window-to-buffer
-                                       win
-                                       (floor (frame-height) 3))))
+                 '((window-height . popper--fit-window-height)
                    (side . bottom)
                    (slot . 1)))))
     (select-window window)))
@@ -513,7 +540,7 @@ If BUFFER is not specified act on the current buffer instead."
   `popper-suppress-buffers' list. This should run after
   `popper-update-popups' in `window-configuration-change-hook'."
 
-  
+;;(popper-find-popups ())  
   
 
 )
