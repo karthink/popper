@@ -193,6 +193,24 @@ the frame height.
 (defvar popper-reference-modes nil
  "List of buffer major-modes whose buffers are treated as popups.")
 
+(defvar popper-reference-predicates nil
+  "List of predicates to test if a buffer is treated as a popup.
+
+Each predicate takes a buffer as an argument and returns t if it
+should be considered a popup")
+
+(defvar popper-suppressed-names nil
+  "List of buffer names whose windows are treated as suppressed
+  popups.")
+
+(defvar popper-suppressed-modes nil
+  "List of buffer major-modes whose windows are treated as
+  suppressed popups.")
+
+(defvar popper-suppressed-predicates nil
+  "List of predicates for which matching buffers are treated as
+  suppressed popups.")
+
 (defvar popper-open-popup-alist nil
   "Alist of currently live (window . buffer)s that are treated as popups.")
 
@@ -230,7 +248,8 @@ grouped by the predicate `popper-group-function'.")
   (or (seq-some (lambda (buf-regexp)
                (string-match-p buf-regexp (buffer-name buf)))
              popper-reference-names)
-      (member (buffer-local-value 'major-mode buf) popper-reference-modes)))
+      (member (buffer-local-value 'major-mode buf) popper-reference-modes)
+      (seq-some (lambda (pred) (funcall pred buf)) popper-reference-predicates)))
 
 (defun popper-display-control-p (buf &optional _act)
   "Predicate to test if display of buffer BUF needs to be handled by popper.
@@ -296,7 +315,9 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                        (popper-popup-p b)))
           (with-current-buffer b
             (setq popper-popup-status (or popup-status
-                                          'popup)))
+                                          (if (popper-suppress-p b)
+                                              'suppressed
+                                            'popup))))
           (push (cons (get-buffer-window b) b)
                 open-popups))))))
 
@@ -382,11 +403,7 @@ Each element of the alist is a cons cell of the form (window . buffer)."
       (with-selected-window win
         (bury-buffer)
         ;;only close window when window has a parent or in a child frame:
-        (if (and (window-valid-p win)
-                 (window-parent win))
-            (delete-window win)
-          (if (frame-parent)
-              (delete-frame)))))))
+        (popper--delete-popup win)))))
 
 (defun popper-open-latest (&optional group)
   "Open the last closed popup.
@@ -409,6 +426,14 @@ a popup buffer to open."
               (progn (display-buffer buf))
             (popper-open-latest))
         (message no-popup-msg)))))
+
+(defun popper--delete-popup (win)
+  "Delete popup window WIN in a manner appropriate to its type."
+  (if (and (window-valid-p win)
+           (window-parent win))
+      (delete-window win)
+    (if (frame-parent)
+        (delete-frame))))
 
 (defun popper-modified-mode-line ()
   "Return modified mode-line string."
@@ -528,22 +553,59 @@ If BUFFER is not specified act on the current buffer instead."
   (interactive)
   (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
     (pop popper-open-popup-alist)
-    (if (and (window-valid-p win)
-             (window-parent win))
-            (delete-window win)
-          (if (frame-parent)
-              (delete-frame)))
+    (popper--delete-popup win)
     (kill-buffer buf)))
+
+(defun popper-suppress-p (buf)
+  "Predicate to check if popup-buffer BUF needs to be suppressed."
+  (or (seq-some (lambda (buf-regexp)
+               (string-match-p buf-regexp (buffer-name buf)))
+             popper-suppressed-names)
+      (member (buffer-local-value 'major-mode buf) popper-suppressed-modes)
+      (seq-some (lambda (pred) (funcall pred buf)) popper-suppressed-predicates)))
 
 (defun popper-suppress-popups ()
   "TODO: Suppress open popups in the user-defined
   `popper-suppress-buffers' list. This should run after
   `popper-update-popups' in `window-configuration-change-hook'."
 
-;;(popper-find-popups ())  
-  
+  ;; Check if popup-status for any open popup is 'suppressed. If yes, change
+  ;; its popup-status to 'popup and hide it.
 
-)
+  (let ((configuration-changed-p))
+    (cl-loop for (win . buf) in popper-open-popup-alist do
+             (when (eq (buffer-local-value 'popper-popup-status buf) 'suppressed)
+               (setq configuration-changed-p t)
+               (with-selected-window win
+                 (setq-local popper-popup-status 'popup)
+                 ;; If window was previously showing a different buffer, switch to it
+                 (if-let ((wpb (window-prev-buffers win))
+                          (switch-to-buffer-preserve-window-point t))
+                     (switch-to-buffer (caar wpb))
+                   ;; otherwise kill this window/frame
+                   (popper--delete-popup win))
+                 (message (format "Popup suppressed: %s" (buffer-name buf))))))
+    (when configuration-changed-p
+      (popper-update-popups))))
+
+(defun popper--set-reference-vars ()
+  "Unpack `popper-reference-buffers' to`set the values of various
+  popper-reference- variables."
+  (defun popper--insert-element-type (elm)
+    (pcase elm
+      ((pred stringp) (cl-pushnew elm popper-reference-names))
+      ((pred symbolp) (cl-pushnew elm popper-reference-modes))
+      ;; ((pred functionp) (push elm predlist)) ;; TODO
+      ((pred consp)
+       (progn (when (eq (cdr elm) 'hide)
+                (pcase (car elm)
+                  ((pred stringp) (cl-pushnew (car elm) popper-suppressed-names))
+                  ((pred symbolp) (cl-pushnew (car elm) popper-suppressed-modes))))
+              (popper--insert-element-type
+               (car elm))))))
+  
+  (dolist (entry popper-reference-buffers nil)
+    (popper--insert-element-type entry)))
 
 ;;;###autoload
 (define-minor-mode popper-mode
@@ -552,30 +614,36 @@ windows as popups, a class of window that can be summoned or
 dismissed with a command. See the customization options for
 details on how to designate buffer types as popups."
   :global t
-  :version "0.30"
+  :version "0.40"
   :lighter ""
   :group 'popper
   :keymap (let ((map (make-sparse-keymap))) map)
   (if popper-mode
       ;; Turning the mode ON
       (progn
-        (setq popper-reference-names
-              (cl-remove-if-not #'stringp popper-reference-buffers)
-              popper-reference-modes
-              (cl-remove-if-not #'symbolp popper-reference-buffers))
+        (popper--set-reference-vars)
         (popper-find-buried-popups)
         (popper-update-popups)
+        ;; popper-suppress-popups should run after popper-update-popups, so it's
+        ;; added first.
+        (add-hook 'window-configuration-change-hook #'popper-suppress-popups)
         (add-hook 'window-configuration-change-hook #'popper-update-popups)
         (add-to-list 'display-buffer-alist
                      `(popper-display-control-p
                        (,popper-display-function))))
     ;; Turning the mode OFF
     (remove-hook 'window-configuration-change-hook #'popper-update-popups)
+    (remove-hook 'window-configuration-change-hook #'popper-suppress-popups)
     (cl-loop for (_ . win-buf-alist) in popper-buried-popup-alist do
              (popper-restore-mode-lines win-buf-alist))
     (popper-restore-mode-lines popper-open-popup-alist)
+    ;; TODO: Clean this up
     (setq popper-buried-popup-alist nil
-          popper-open-popup-alist nil)
+          popper-open-popup-alist nil
+          popper-reference-names nil
+          popper-reference-modes nil
+          popper-suppressed-names nil
+          popper-suppressed-modes nil)
     (setq display-buffer-alist
           (cl-remove 'popper-display-control-p
                      display-buffer-alist
