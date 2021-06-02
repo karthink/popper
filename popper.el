@@ -193,7 +193,8 @@ grouped by the predicate `popper-group-function'.")
                  '((window-height . (lambda (win)
                                       (fit-window-to-buffer
                                        win
-                                       (floor (frame-height) 3))))
+                                       (floor (frame-height) 3)
+                                       (floor (frame-height) 6))))
                    (side . bottom)
                    (slot . 1)))))
     (select-window window)))
