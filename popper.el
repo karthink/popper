@@ -429,11 +429,15 @@ a popup buffer to open."
 
 (defun popper--delete-popup (win)
   "Delete popup window WIN in a manner appropriate to its type."
-  (if (and (window-valid-p win)
-           (window-parent win))
-      (delete-window win)
-    (if (frame-parent)
-        (delete-frame))))
+  (when (window-valid-p win)
+    (cond
+     ((window-parent win) (delete-window win))
+     ((frame-parent) (delete-frame))
+     (t (if-let* ((wob (window-prev-buffers win))
+                  (bprev (caar wob))
+                  (blivep (buffer-live-p bprev)))
+            (with-selected-window win
+              (switch-to-buffer bprev)))))))
 
 (defun popper-modified-mode-line ()
   "Return modified mode-line string."
@@ -628,12 +632,14 @@ details on how to designate buffer types as popups."
         ;; added first.
         (add-hook 'window-configuration-change-hook #'popper-suppress-popups)
         (add-hook 'window-configuration-change-hook #'popper-update-popups)
+        (add-hook 'select-frame-hook #'popper-update-popups)
         (add-to-list 'display-buffer-alist
                      `(popper-display-control-p
                        (,popper-display-function))))
     ;; Turning the mode OFF
     (remove-hook 'window-configuration-change-hook #'popper-update-popups)
     (remove-hook 'window-configuration-change-hook #'popper-suppress-popups)
+    (remove-hook 'select-frame-hook #'popper-update-popups)
     (cl-loop for (_ . win-buf-alist) in popper-buried-popup-alist do
              (popper-restore-mode-lines win-buf-alist))
     (popper-restore-mode-lines popper-open-popup-alist)
