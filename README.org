@@ -183,7 +183,9 @@ If you already have rules in place for how various buffers should be displayed, 
 #+end_src
 
 ** Suppressing popups
-Popper can suppress popups when they are first created. The buffer will be registered in the list of popups but will not show up on your screen. Instead, a message ("Popup suppressed: $buffer-name") will be printed to the echo area. You can then raise it using =popper-toggle-latest= or =popper-cycle= at your convenience. It will behave like regular popups from that point on.
+Popper can suppress popups when they are first created. The buffer will be registered in the list of popups but will not show up on your screen. Instead, a message ("Popup suppressed: $buffer-name") will be printed to the echo area. You can then raise it using =popper-toggle-latest= or =popper-cycle= at your convenience. It behaves as a regular popup from that point on:
+
+[[file:images/popper-hide-popup.mp4]]
 
 To specify popups to auto-hide, use a cons cell with the =hide= symbol when specifying =popup-reference-buffers=:
 
