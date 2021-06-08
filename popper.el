@@ -85,7 +85,7 @@
   "List of buffers to treat as popups.
 Each entry in the list can be a regexp (string) to match buffer
 names against, or a `major-mode' (symbol) to match buffer
-major-modes against.
+major-modes against, or a predicate of one argument (a buffer).
 
 Example:
 
@@ -95,8 +95,20 @@ Example:
   compilation-mode)
 
 Will match against the Messages buffer, any buffer ending in
-Output*, and all help and compilation buffers."
-  :type '(restricted-sexp :match-alternatives (stringp symbolp))
+Output*, and all help and compilation buffers.
+
+'(\"\\*Messages\\*\"
+  help-mode
+  (lambda (buf) (with-current-buffer buf
+             (and (derived-mode-p 'fundamental-mode)
+                  (< (count-lines (point-min) (point-max))
+                     10)))))
+
+will match against the Messages buffer, all help buffers and any
+buffer with major-mode derived from fundamental mode that has
+fewer than 10 lines at time of creation.
+"
+  :type '(restricted-sexp :match-alternatives (stringp symbolp functionp consp))
   :group 'popper)
 
 (defcustom popper-mode-line '(:eval (propertize " POP" 'face 'mode-line-emphasis))
@@ -164,7 +176,7 @@ Built-in choices include
           (function :tag "Custom function")))
 
 (defcustom popper-window-height #'popper--fit-window-height
-  "Specify the height of the popup window. 
+  "Specify the height of the popup window.
 
 This can be a number representing the height in chars or a
 function that optionally takes one argument (the popup window)
@@ -178,38 +190,34 @@ Examples:
 
 ;; The default, scale window height with buffer size up to 33% of
 the frame height.
-(lambda (win)
+ (lambda (win)
   (fit-window-to-buffer
-   win
-   (floor (frame-height) 3)))
-"
+    win
+    (floor (frame-height) 3)))"
   :group 'popper
   :type '(choice (integer :tag "Height in chars")
                  (function :tag "Height function")))
 
-(defvar popper-reference-names nil
+(defvar popper--reference-names nil
   "List of buffer names whose windows are treated as popups.")
 
-(defvar popper-reference-modes nil
+(defvar popper--reference-modes nil
  "List of buffer major-modes whose buffers are treated as popups.")
 
-(defvar popper-reference-predicates nil
+(defvar popper--reference-predicates nil
   "List of predicates to test if a buffer is treated as a popup.
 
 Each predicate takes a buffer as an argument and returns t if it
 should be considered a popup")
 
-(defvar popper-suppressed-names nil
-  "List of buffer names whose windows are treated as suppressed
-  popups.")
+(defvar popper--suppressed-names nil
+  "Buffer name list matching suppressed popup buffers.")
 
-(defvar popper-suppressed-modes nil
-  "List of buffer major-modes whose windows are treated as
-  suppressed popups.")
+(defvar popper--suppressed-modes nil
+  "Major mode list matching suppressed popup buffers.")
 
-(defvar popper-suppressed-predicates nil
-  "List of predicates for which matching buffers are treated as
-  suppressed popups.")
+(defvar popper--suppressed-predicates nil
+  "Predicate list matching suppressed popup buffers.")
 
 (defvar popper-open-popup-alist nil
   "Alist of currently live (window . buffer)s that are treated as popups.")
@@ -229,10 +237,11 @@ grouped by the predicate `popper-group-function'.")
 'user-popup: This is a regular buffer lowered to popup status by the user.")
 
 (defun popper--fit-window-height (win)
-  "Determine the popper window height by fitting it to the buffer's content."
+  "Determine the height of popup window WIN by fitting it to the buffer's content."
   (fit-window-to-buffer
    win
-   (floor (frame-height) 3)))
+   (floor (frame-height) 3)
+   (floor (frame-height) 6)))
 
 (defun popper-select-popup-at-bottom (buffer &optional _alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
@@ -247,9 +256,9 @@ grouped by the predicate `popper-group-function'.")
   "Predicate to test if buffer BUF meets the criteria listed in `popper-reference-buffers'."
   (or (seq-some (lambda (buf-regexp)
                (string-match-p buf-regexp (buffer-name buf)))
-             popper-reference-names)
-      (member (buffer-local-value 'major-mode buf) popper-reference-modes)
-      (seq-some (lambda (pred) (funcall pred buf)) popper-reference-predicates)))
+             popper--reference-names)
+      (member (buffer-local-value 'major-mode buf) popper--reference-modes)
+      (seq-some (lambda (pred) (funcall pred buf)) popper--reference-predicates)))
 
 (defun popper-display-control-p (buf &optional _act)
   "Predicate to test if display of buffer BUF needs to be handled by popper.
@@ -328,36 +337,24 @@ Each element of the alist is a cons cell of the form (window . buffer)."
   (let* ((open-buffers (mapcar #'window-buffer (window-list)))
          (open-popups (popper-find-popups open-buffers))
          (closed-popups (cl-remove-if-not
-                         (lambda (arg)
-                           (memq (buffer-local-value 'popper-popup-status (cdr arg))
+                         (lambda (win-buf)
+                           (memq (buffer-local-value 'popper-popup-status (cdr win-buf))
                                  '(popup user-popup)))
-                         (cl-set-difference popper-open-popup-alist
-                                            open-popups
-                                            :key #'cdr))))
+                         (cl-set-difference popper-open-popup-alist open-popups :key #'cdr))))
          (setq popper-open-popup-alist (nreverse open-popups))
          (if popper-group-function
              (cl-loop for (win . buf) in closed-popups do
-                      (let ((identifier-popups
-                             (cdr (assoc
-                                   (with-current-buffer buf
-                                     (funcall popper-group-function))
-                                   popper-buried-popup-alist
-                                  'equal))))
-                        (setf
-                         (alist-get
-                          (with-current-buffer buf
-                            (funcall popper-group-function))
-                          popper-buried-popup-alist
-                          nil nil 'equal)
-                         (append (list (cons win buf))
-                                 (cl-remove (cons win buf)
-                                            identifier-popups
-                                            :key 'cdr)))))
-           (setf (alist-get nil popper-buried-popup-alist)
-                 (append closed-popups
-                         (cl-set-difference (cdr (assoc nil popper-buried-popup-alist))
-                                            closed-popups
-                                            :key #'cdr)))))
+                      (let* ((group-name (with-current-buffer buf (funcall popper-group-function)))
+                             (group-popups (cdr (assoc group-name popper-buried-popup-alist 'equal)))
+                             (newpop (cons win buf)))
+                        (setf (alist-get group-name popper-buried-popup-alist
+                                         nil nil 'equal)
+                              (append (list newpop)
+                                      (cl-remove newpop group-popups :key 'cdr)))))
+           (let ((old-popups (alist-get nil popper-buried-popup-alist)))
+             (setf (alist-get nil popper-buried-popup-alist)
+                   (append closed-popups
+                           (cl-set-difference old-popups closed-popups :key #'cdr))))))
   ;; Mode line update
   (cl-loop for (_ . buf) in popper-open-popup-alist do
              (with-current-buffer buf
@@ -423,7 +420,7 @@ a popup buffer to open."
                                            nil 'remove 'equal)))
                 (buf (cdr new-popup)))
           (if (buffer-live-p buf)
-              (progn (display-buffer buf))
+              (display-buffer buf)
             (popper-open-latest))
         (message no-popup-msg)))))
 
@@ -564,12 +561,14 @@ If BUFFER is not specified act on the current buffer instead."
   "Predicate to check if popup-buffer BUF needs to be suppressed."
   (or (seq-some (lambda (buf-regexp)
                (string-match-p buf-regexp (buffer-name buf)))
-             popper-suppressed-names)
-      (member (buffer-local-value 'major-mode buf) popper-suppressed-modes)
-      (seq-some (lambda (pred) (funcall pred buf)) popper-suppressed-predicates)))
+             popper--suppressed-names)
+      (member (buffer-local-value 'major-mode buf) popper--suppressed-modes)
+      (seq-some (lambda (pred) (funcall pred buf)) popper--suppressed-predicates)))
 
 (defun popper-suppress-popups ()
-  "TODO: Suppress open popups in the user-defined
+  "TODO.
+
+   Suppress open popups in the user-defined
   `popper-suppress-buffers' list. This should run after
   `popper-update-popups' in `window-configuration-change-hook'."
 
@@ -592,24 +591,39 @@ If BUFFER is not specified act on the current buffer instead."
     (when configuration-changed-p
       (popper-update-popups))))
 
+(declare-function popper--classify-type "popper")
+(declare-function popper--insert-type "popper")
+
 (defun popper--set-reference-vars ()
   "Unpack `popper-reference-buffers' to`set the values of various
-  popper-reference- variables."
-  (defun popper--insert-element-type (elm)
+  popper--reference- variables."
+  (defun popper--classify-type (elm)
     (pcase elm
-      ((pred stringp) (cl-pushnew elm popper-reference-names))
-      ((pred symbolp) (cl-pushnew elm popper-reference-modes))
-      ;; ((pred functionp) (push elm predlist)) ;; TODO
-      ((pred consp)
-       (progn (when (eq (cdr elm) 'hide)
-                (pcase (car elm)
-                  ((pred stringp) (cl-pushnew (car elm) popper-suppressed-names))
-                  ((pred symbolp) (cl-pushnew (car elm) popper-suppressed-modes))))
-              (popper--insert-element-type
-               (car elm))))))
+      ((pred stringp) 'name)
+      ((and (pred symbolp)
+            (guard (or (get elm 'derived-mode-parent)
+                       (get elm 'mode-class)
+                       (not (boundp elm))
+                       (not (fboundp elm))
+                       (commandp elm))))
+       'mode)
+      ((pred functionp) 'pred)
+      ((pred consp) 'cons)))
+
+  (defun popper--insert-type (elm)
+    (pcase (popper--classify-type elm)
+      ('name (cl-pushnew elm popper--reference-names))
+      ('mode (cl-pushnew elm popper--reference-modes))
+      ('pred (cl-pushnew elm popper--reference-predicates))
+      ('cons (when (eq (cdr elm) 'hide)
+               (pcase (popper--classify-type (car elm))
+                 ('name (cl-pushnew (car elm) popper--suppressed-names))
+                 ('mode (cl-pushnew (car elm) popper--suppressed-modes))
+                 ('pred (cl-pushnew (car elm) popper--suppressed-modes))))
+             (popper--insert-type (car elm)))))
   
   (dolist (entry popper-reference-buffers nil)
-    (popper--insert-element-type entry)))
+    (popper--insert-type entry)))
 
 ;;;###autoload
 (define-minor-mode popper-mode
@@ -646,10 +660,12 @@ details on how to designate buffer types as popups."
     ;; TODO: Clean this up
     (setq popper-buried-popup-alist nil
           popper-open-popup-alist nil
-          popper-reference-names nil
-          popper-reference-modes nil
-          popper-suppressed-names nil
-          popper-suppressed-modes nil)
+          popper--reference-names nil
+          popper--reference-modes nil
+          popper--reference-predicates nil
+          popper--suppressed-names nil
+          popper--suppressed-modes nil
+          popper--suppressed-predicates nil)
     (setq display-buffer-alist
           (cl-remove 'popper-display-control-p
                      display-buffer-alist
