@@ -191,13 +191,13 @@ To specify popups to auto-hide, use a cons cell with the =hide= symbol when spec
 
 #+begin_src emacs-lisp
   (setq popper-reference-buffers
-      '("\\*Messages\\*"
-        ("\\*Async Shell Command\\*" . hide)
+      '(("Output\\*$" . hide)
         (completion-list-mode . hide)
-        occur-mode))
+        occur-mode
+        "\\*Messages\\*"))
 #+end_src
 
-This assignment will suppress async shell command output and the Completions buffer. The other entries are treated as normal popups.
+This assignment will suppress all buffers ending in =Output*= and the Completions buffer. The other entries are treated as normal popups.
 
 You can combine the hiding feature with predicates for classifying buffers as popups:
 
@@ -205,13 +205,12 @@ You can combine the hiding feature with predicates for classifying buffers as po
   (defun popper-shell-output-empty-p (buf)
     (and (string-match-p "\\*Async Shell Command\\*" (buffer-name buf))
          (= (buffer-size buf) 0)))
-  
-  (setq popper-reference-buffers
-        '("\\*Messages\\*"
-          (popper-shell-output-empty-p . hide)))
+
+  (add-to-list 'popper-reference-buffers
+               '(popper-shell-output-empty-p . hide))
 #+END_SRC
 
-This assignment will suppress display of the async shell command output buffer only when there is no output (stdout). Once it is hidden it will be treated as a popup on par with the Messages buffer.
+This assignment will suppress display of the async shell command output buffer only when there is no output (stdout). Once it is hidden it will be treated as a popup on par with other entries in =popper-reference-buffers=.
 
 * Technical notes
 =popper= uses a buffer local variable (=popper-popup-status=) to identify if a given buffer should be treated as a popup. Matching is always by buffer and not window, so having two windows of a buffer, one treated as a popup and one as a regular window, isn't possible (although you can do this with indirect clones). In addition, it maintains an alist of popup windows/buffers for cycling through.
