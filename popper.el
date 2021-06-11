@@ -99,6 +99,18 @@ Output*, and all help and compilation buffers."
   :type '(restricted-sexp :match-alternatives (stringp symbolp))
   :group 'popper)
 
+(defcustom popper-reference-hidden-buffers '()
+  "List of buffers to treat as hidden popups.
+
+This elements of this list take the same format as in
+`popper-reference-buffers'. When the value of
+`popper-display-function' is set to
+`popper-select-popup-at-bottom-maybe-hide', the buffers in this
+list will not be shown by default unless explicitly asked for via
+a function like `popper-toggle-latest'. "
+  :type '(restricted-sexp :match-alternatives (stringp symbolp))
+  :group 'popper)
+
 (defcustom popper-mode-line '(:eval (propertize " POP" 'face 'mode-line-emphasis))
   "String or sexp to show in the mode-line of popper.
 
@@ -178,6 +190,12 @@ Built-in choices include
 If `popper-group-function' is non-nil, these are
 grouped by the predicate `popper-group-function'.")
 
+(defvar popper-lighter ""
+  "Lighter for `popper-mode'.")
+
+(defvar popper-calling-display-buffer nil
+  "Flag to track when popper is explicitly calling `display-buffer'.")
+
 (defvar-local popper-popup-status nil
   "Identifies a buffer as a popup by its buffer-local value.
   Valid values are 'popup, 'raised, 'user-popup or nil.
@@ -198,6 +216,34 @@ grouped by the predicate `popper-group-function'.")
                    (side . bottom)
                    (slot . 1)))))
     (select-window window)))
+
+(defun popper-hidden-buffer-p (buffer)
+  "Check if BUFFER matches a buffer in `popper-reference-hidden-buffers'."
+  (catch 'done
+    (dolist (hidden popper-reference-hidden-buffers nil)
+      (when (or (and (stringp hidden)
+                     (string-match-p hidden (buffer-name buffer)))
+                (and (symbolp hidden)
+                     (eq (buffer-local-value 'major-mode buffer) hidden)))
+        (throw 'done t)))))
+
+(defun popper-select-popup-at-bottom-maybe-hide (buffer &optional _alist)
+  "Display and switch to popup-buffer BUFFER at the bottom of the screen.
+
+Don't show the buffer automatically if it is listed in
+`popper-reference-buffers-hidden'."
+  (if (and (popper-hidden-buffer-p buffer)
+           (null popper-calling-display-buffer))
+      (display-buffer-no-window buffer '((allow-no-window . t)))
+    (let ((window (display-buffer-in-side-window
+                   buffer
+                   '((window-height . (lambda (win)
+                                        (fit-window-to-buffer
+                                         win
+                                         (floor (frame-height) 3))))
+                     (side . bottom)
+                     (slot . 1)))))
+      (select-window window))))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF meets the criteria listed in `popper-reference-buffers'."
@@ -262,60 +308,39 @@ This returns the name of the perspective."
   "Return an alist corresponding to popups in TEST-BUFFER-LIST.
 
 Each element of the alist is a cons cell of the form (window . buffer)."
-  (let* (open-popups)
-    (dolist (b test-buffer-list open-popups)
-      (let ((popup-status (buffer-local-value 'popper-popup-status b)))
-        (when (and (not (minibufferp b))
-                   (not (eq popup-status 'raised))
-                   (or (member popup-status '(popup user-popup))
-                       (popper-popup-p b)))
-          (with-current-buffer b
-            (setq popper-popup-status (or popup-status
-                                          'popup)))
-          (push (cons (get-buffer-window b) b)
-                open-popups))))))
+  (let* (popups)
+    (dolist (b test-buffer-list popups)
+      (when (and (not (minibufferp b))
+                 (popper-popup-p b))
+        (push (cons (get-buffer-window b) b) popups)))))
 
 (defun popper-update-popups ()
   "Update the list of currently open popups.
 
- Intended to be added to `window-configuration-change-hook'."
-  (let* ((open-buffers (mapcar #'window-buffer (window-list)))
-         (open-popups (popper-find-popups open-buffers))
-         (closed-popups (cl-remove-if-not
-                         (lambda (arg)
-                           (memq (buffer-local-value 'popper-popup-status (cdr arg))
-                                 '(popup user-popup)))
-                         (cl-set-difference popper-open-popup-alist
-                                            open-popups
-                                            :key #'cdr))))
-         (setq popper-open-popup-alist (nreverse open-popups))
-         (if popper-group-function
-             (cl-loop for (win . buf) in closed-popups do
-                      (let ((identifier-popups
-                             (cdr (assoc
-                                   (with-current-buffer buf
-                                     (funcall popper-group-function))
-                                   popper-buried-popup-alist
-                                  'equal))))
-                        (setf
-                         (alist-get
-                          (with-current-buffer buf
-                            (funcall popper-group-function))
-                          popper-buried-popup-alist
-                          nil nil 'equal)
-                         (append (list (cons win buf))
-                                 (cl-remove (cons win buf)
-                                            identifier-popups
-                                            :key 'cdr)))))
-           (setf (alist-get nil popper-buried-popup-alist)
-                 (append closed-popups
-                         (cl-set-difference (cdr (assoc nil popper-buried-popup-alist))
-                                            closed-popups
-                                            :key #'cdr)))))
+ Intended to be added to `buffer-list-update-hook' and
+`window-configuration-change-hook'."
+  (let* ((popups (popper-find-popups (buffer-list)))
+         (open-popups (cl-remove-if-not
+                       (lambda (win-buf) (windowp (car win-buf)))
+                       popups))
+         (closed-popups (cl-set-difference popups open-popups :key #'cdr)))
+    (setq popper-open-popup-alist (nreverse open-popups))
+    (setq popper-buried-popup-alist nil)
+    (if popper-group-function
+        (cl-loop for (win . buf) in closed-popups do
+                 (let ((group (with-current-buffer buf
+                                (funcall popper-group-function)))
+                       (newelt (cons win buf)))
+                   (if (alist-get group popper-buried-popup-alist)
+                       (push newelt (alist-get group
+                                               popper-buried-popup-alist))
+                     (push (cons group (list newelt))
+                           popper-buried-popup-alist))))
+      (setq popper-buried-popup-alist (list (cons nil closed-popups)))))
   ;; Mode line update
   (cl-loop for (_ . buf) in popper-open-popup-alist do
-             (with-current-buffer buf
-               (setq mode-line-format (popper-modified-mode-line)))))
+           (with-current-buffer buf
+             (setq mode-line-format (popper-modified-mode-line)))))
 
 (defun popper-find-buried-popups ()
   "Update the list of currently buried popups.
@@ -381,7 +406,8 @@ a popup buffer to open."
                                            nil 'remove 'equal)))
                 (buf (cdr new-popup)))
           (if (buffer-live-p buf)
-              (progn (display-buffer buf))
+              (let ((popper-calling-display-buffer t))
+                (display-buffer buf))
             (popper-open-latest))
         (message no-popup-msg)))))
 
@@ -518,24 +544,30 @@ dismissed with a command. See the customization options for
 details on how to designate buffer types as popups."
   :global t
   :version "0.30"
-  :lighter ""
+  :lighter popper-lighter
   :group 'popper
   :keymap (let ((map (make-sparse-keymap))) map)
   (if popper-mode
       ;; Turning the mode ON
       (progn
         (setq popper-reference-names
-              (cl-remove-if-not #'stringp popper-reference-buffers)
+              (cl-remove-if-not #'stringp
+                                (append popper-reference-buffers
+                                        popper-reference-hidden-buffers))
               popper-reference-modes
-              (cl-remove-if-not #'symbolp popper-reference-buffers))
+              (cl-remove-if-not #'symbolp
+                                (append popper-reference-buffers
+                                        popper-reference-hidden-buffers)))
         (popper-find-buried-popups)
         (popper-update-popups)
         (add-hook 'window-configuration-change-hook #'popper-update-popups)
+        (add-hook 'buffer-list-update-hook #'popper-update-popups)
         (add-to-list 'display-buffer-alist
                      `(popper-display-control-p
                        (,popper-display-function))))
     ;; Turning the mode OFF
     (remove-hook 'window-configuration-change-hook #'popper-update-popups)
+    (remove-hook 'buffer-list-update-hook #'popper-update-popups)
     (cl-loop for (_ . win-buf-alist) in popper-buried-popup-alist do
              (popper-restore-mode-lines win-buf-alist))
     (popper-restore-mode-lines popper-open-popup-alist)
