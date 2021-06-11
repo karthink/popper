@@ -289,7 +289,8 @@ directory as a fall back."
     (user-error "Cannot find project directory to group popups.
   Please install `project' or customize
   `popper-group-function'"))
-  (project-root (project-current)))
+  (when-let ((project (project-current)))
+    (project-root project)))
 
 (defun popper-group-by-projectile ()
   "Return an identifier to group popups.
