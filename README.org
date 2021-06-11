@@ -88,7 +88,7 @@ See [[*Customization][Customization]] for details on specifying buffer types as 
 :END:
 To get started, customize this variable:
 
-- =popper-reference-buffers=: List of buffers to treat as popups. Each entry in the list can be a regexp (string) to match buffer names against, a major-mode (symbol) to match buffer major-modes against, or an arbitrary predicate (function) that is called with the buffer as argument.
+- =popper-reference-buffers=: List of buffers to treat as popups. Each entry in the list can be a regexp (string) to match buffer names against or a major-mode (symbol) to match buffer major-modes against.
 
   Example: 
 
@@ -102,7 +102,7 @@ To get started, customize this variable:
 
   Will treat the following as popups: The Messages buffer, any buffer ending in "Output*", and all help and compilation buffers.
 
-  Example with predicate:
+  As of v0.40, Popper also supports classifying a buffer as a popup based on any user supplied predicate. This predicate (function) is called with the buffer as argument and returns =t= if it should be considered a popup. Here is an example with a predicate:
   
   #+BEGIN_SRC emacs-lisp
     (setq popper-reference-buffers
@@ -114,16 +114,16 @@ To get started, customize this variable:
                                10)))))))
   #+END_SRC
   
-  In addition to the Messages and all help buffers, any buffer derived from the major mode =fundamental-mode= that has fewer than 10 lines will be considered a popup. 
+  This list includes the the Messages and =help-mode= buffers from before, along with a predicate: any buffer derived from the major mode =fundamental-mode= that has fewer than 10 lines will be considered a popup. 
 
-  Note that for performance reasons, each predicate is run once on each newly created buffer to classify it as a popup. So the predicate can only access the state of the buffer when it is created, and thus dynamically changing a buffer's popup status based on its changing contents is not possible.
+  Note that for performance reasons, predicates that classify a buffer as a popup are only run when the buffer is created. Thus dynamically changing a buffer's popup status based on its changing state is not possible (yet).
   
   There are other customization options, check the =popper= group.
 
 ** Grouping popups by context
 Popper can group popups by "context", so that the popups available for display are limited to those that are relevant to the context in which =popper-toggle-latest= or =popper-cycle= is called. For example, when cycling popups from a project buffer, you may only want to see the popups (REPLs, help buffers and compilation output, say) that were spawned from buffers in that project. This is intended to approximate DWIM behavior, so that the most relevant popup in any context is never more than one command away.
 
-Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, using =perspective= names, as well as the default directory of a buffer. To set this, customize =popper-group-function= or use one of
+Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, using =perspective= names (from =persp.el=), as well as the default directory of a buffer. To set this, customize =popper-group-function= or use one of
 
 #+BEGIN_SRC emacs-lisp
   (setq popper-group-function #'popper-group-by-project) ; project.el projects
@@ -210,7 +210,7 @@ You can combine the hiding feature with predicates for classifying buffers as po
                '(popper-shell-output-empty-p . hide))
 #+END_SRC
 
-This assignment will suppress display of the async shell command output buffer only when there is no output (stdout). Once it is hidden it will be treated as a popup on par with other entries in =popper-reference-buffers=.
+This assignment will suppress display of the async shell command output buffer, but only when there is no output (stdout). Once it is hidden it will be treated as a popup on par with other entries in =popper-reference-buffers=.
 
 * Technical notes
 =popper= uses a buffer local variable (=popper-popup-status=) to identify if a given buffer should be treated as a popup. Matching is always by buffer and not window, so having two windows of a buffer, one treated as a popup and one as a regular window, isn't possible (although you can do this with indirect clones). In addition, it maintains an alist of popup windows/buffers for cycling through.
