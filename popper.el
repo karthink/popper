@@ -87,7 +87,7 @@ Each entry in the list can be a regexp (string) to match buffer
 names against, or a `major-mode' (symbol) to match buffer
 major-modes against, or a predicate of one argument (a buffer).
 
-Example:
+Examples:
 
 '(\"\\*Messages\\*\"
   \"Output\\*$\"
@@ -280,7 +280,8 @@ This is intended to be used in `display-buffer-alist'."
 The project root is used if found by project, with the default
 directory as a fall back."
   (or (and (fboundp 'project-root)
-           (project-root (project-current)))
+           (when-let ((project (project-current)))
+             (project-root project)))
       (expand-file-name default-directory)))
 
 (defun popper-group-by-project ()
@@ -312,7 +313,7 @@ This returns the name of the perspective."
   `popper-group-function'"))
   (persp-current-name))
 
-(defun popper-find-popups (test-buffer-list)
+(defun popper--find-popups (test-buffer-list)
   "Return an alist corresponding to popups in TEST-BUFFER-LIST.
 
 Each element of the alist is a cons cell of the form (window . buffer)."
@@ -325,18 +326,18 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                        (popper-popup-p b)))
           (with-current-buffer b
             (setq popper-popup-status (or popup-status
-                                          (if (popper-suppress-p b)
+                                          (if (popper--suppress-p b)
                                               'suppressed
                                             'popup))))
           (push (cons (get-buffer-window b) b)
                 open-popups))))))
 
-(defun popper-update-popups ()
+(defun popper--update-popups ()
   "Update the list of currently open popups.
 
  Intended to be added to `window-configuration-change-hook'."
   (let* ((open-buffers (mapcar #'window-buffer (window-list)))
-         (open-popups (popper-find-popups open-buffers))
+         (open-popups (popper--find-popups open-buffers))
          (closed-popups (cl-remove-if-not
                          (lambda (win-buf)
                            (memq (buffer-local-value 'popper-popup-status (cdr win-buf))
@@ -359,13 +360,13 @@ Each element of the alist is a cons cell of the form (window . buffer)."
   ;; Mode line update
   (cl-loop for (_ . buf) in popper-open-popup-alist do
              (with-current-buffer buf
-               (setq mode-line-format (popper-modified-mode-line)))))
+               (setq mode-line-format (popper--modified-mode-line)))))
 
-(defun popper-find-buried-popups ()
+(defun popper--find-buried-popups ()
   "Update the list of currently buried popups.
 
  Meant to be run when starting command `popper-mode'."
-  (let ((buried-popups (popper-find-popups
+  (let ((buried-popups (popper--find-popups
                         (cl-set-difference
                          (buffer-list)
                          (mapcar #'window-buffer
@@ -437,7 +438,7 @@ a popup buffer to open."
             (with-selected-window win
               (switch-to-buffer bprev)))))))
 
-(defun popper-modified-mode-line ()
+(defun popper--modified-mode-line ()
   "Return modified mode-line string."
   (when popper-mode-line
     (if (member popper-mode-line mode-line-format)
@@ -446,7 +447,7 @@ a popup buffer to open."
               (cons popper-mode-line (nthcdr popper-mode-line-position
                                              (default-value 'mode-line-format)))))))
 
-(defun popper-restore-mode-lines (win-buf-alist)
+(defun popper--restore-mode-lines (win-buf-alist)
   "Restore the default value of `mode-line-format'.
 
 This applies to popup-buffers in the list WIN-BUF-ALIST."
@@ -456,12 +457,12 @@ This applies to popup-buffers in the list WIN-BUF-ALIST."
         (setq mode-line-format (default-value 'mode-line-format))
         (force-mode-line-update)))))
 
-(defun popper-bury-all ()
+(defun popper--bury-all ()
   "Bury all open popups."
   (while popper-open-popup-alist
     (popper-close-latest)))
 
-(defun popper-open-all ()
+(defun popper--open-all ()
   "Open all popups.
 
 Note that buffers that are displayed in the same 'position' on
@@ -488,10 +489,10 @@ windows as it can."
     (if popper-open-popup-alist
         (pcase arg
           (4 (popper-open-latest group))
-          (16 (popper-bury-all))
+          (16 (popper--bury-all))
           (_ (popper-close-latest)))
       (if (equal arg 16)
-          (popper-open-all)
+          (popper--open-all)
         (popper-open-latest group)))))
 
 (defun popper-cycle (&optional default-group)
@@ -506,7 +507,7 @@ belonging to the default group."
     (if (null popper-open-popup-alist)
         (popper-open-latest group)
       (if (null (alist-get group popper-buried-popup-alist nil nil 'equal))
-          (popper-bury-all) ; starting new cycle, so bury everything first.
+          (popper--bury-all) ; starting new cycle, so bury everything first.
         ;; cycle through buffers
         (popper-close-latest)
         (let ((bufs (cdr (assoc group popper-buried-popup-alist))))
@@ -537,7 +538,7 @@ If BUFFER is not specified act on the current buffer instead."
                                   'user-popup))
       (delete-window (get-buffer-window buf t))
       (pop-to-buffer buf))
-    (popper-update-popups)))
+    (popper--update-popups)))
 
 (defun popper-toggle-type (&optional buffer)
   "Turn a popup buffer BUFFER into a regular window or vice-versa.
@@ -558,7 +559,7 @@ If BUFFER is not specified act on the current buffer instead."
     (popper--delete-popup win)
     (kill-buffer buf)))
 
-(defun popper-suppress-p (buf)
+(defun popper--suppress-p (buf)
   "Predicate to check if popup-buffer BUF needs to be suppressed."
   (or (seq-some (lambda (buf-regexp)
                (string-match-p buf-regexp (buffer-name buf)))
@@ -566,12 +567,12 @@ If BUFFER is not specified act on the current buffer instead."
       (member (buffer-local-value 'major-mode buf) popper--suppressed-modes)
       (seq-some (lambda (pred) (funcall pred buf)) popper--suppressed-predicates)))
 
-(defun popper-suppress-popups ()
+(defun popper--suppress-popups ()
   "TODO.
 
    Suppress open popups in the user-defined
   `popper-suppress-buffers' list. This should run after
-  `popper-update-popups' in `window-configuration-change-hook'."
+  `popper--update-popups' in `window-configuration-change-hook'."
 
   ;; Check if popup-status for any open popup is 'suppressed. If yes, change
   ;; its popup-status to 'popup and hide it.
@@ -590,7 +591,7 @@ If BUFFER is not specified act on the current buffer instead."
                    (popper--delete-popup win))
                  (message (format "Popup suppressed: %s" (buffer-name buf))))))
     (when configuration-changed-p
-      (popper-update-popups))))
+      (popper--update-popups))))
 
 (declare-function popper--classify-type "popper")
 (declare-function popper--insert-type "popper")
@@ -639,23 +640,23 @@ details on how to designate buffer types as popups."
       ;; Turning the mode ON
       (progn
         (popper--set-reference-vars)
-        (popper-find-buried-popups)
-        (popper-update-popups)
-        ;; popper-suppress-popups should run after popper-update-popups, so it's
+        (popper--find-buried-popups)
+        (popper--update-popups)
+        ;; popper--suppress-popups should run after popper--update-popups, so it's
         ;; added first.
-        (add-hook 'window-configuration-change-hook #'popper-suppress-popups)
-        (add-hook 'window-configuration-change-hook #'popper-update-popups)
-        (add-hook 'select-frame-hook #'popper-update-popups)
+        (add-hook 'window-configuration-change-hook #'popper--suppress-popups)
+        (add-hook 'window-configuration-change-hook #'popper--update-popups)
+        (add-hook 'select-frame-hook #'popper--update-popups)
         (add-to-list 'display-buffer-alist
                      `(popper-display-control-p
                        (,popper-display-function))))
     ;; Turning the mode OFF
-    (remove-hook 'window-configuration-change-hook #'popper-update-popups)
-    (remove-hook 'window-configuration-change-hook #'popper-suppress-popups)
-    (remove-hook 'select-frame-hook #'popper-update-popups)
+    (remove-hook 'window-configuration-change-hook #'popper--update-popups)
+    (remove-hook 'window-configuration-change-hook #'popper--suppress-popups)
+    (remove-hook 'select-frame-hook #'popper--update-popups)
     (cl-loop for (_ . win-buf-alist) in popper-buried-popup-alist do
-             (popper-restore-mode-lines win-buf-alist))
-    (popper-restore-mode-lines popper-open-popup-alist)
+             (popper--restore-mode-lines win-buf-alist))
+    (popper--restore-mode-lines popper-open-popup-alist)
     ;; TODO: Clean this up
     (setq popper-buried-popup-alist nil
           popper-open-popup-alist nil
