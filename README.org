@@ -62,11 +62,12 @@ Additionally, you can turn a regular window into a popup (or vice-versa) with =p
     (setq popper-reference-buffers
           '("\\*Messages\\*"
             "Output\\*$"
+            "\\*Async Shell Command\\*"
             help-mode
             compilation-mode))
     (popper-mode +1))
 #+END_SRC
-See [[*Customization][Customization]] for details on specifying buffer types as popups.
+See the Customization section for details on specifying buffer types as popups.
 
 ** Without =use-package=
 #+BEGIN_SRC emacs-lisp
@@ -74,13 +75,14 @@ See [[*Customization][Customization]] for details on specifying buffer types as 
   (setq popper-reference-buffers
         '("\\*Messages\\*"
           "Output\\*$"
+          "\\*Async Shell Command\\*"
           help-mode
           compilation-mode))
   (global-set-key (kbd "C-`") 'popper-toggle-latest)  
   (global-set-key (kbd "M-`") 'popper-cycle)  
   (popper-mode +1)
 #+END_SRC
-See [[*Customization][Customization]] for details on specifying buffer types as popups.
+See the Customization section for details on specifying buffer types as popups.
 
 * Customization
 :PROPERTIES:
@@ -116,7 +118,7 @@ To get started, customize this variable:
   
   This list includes the the Messages and =help-mode= buffers from before, along with a predicate: any buffer derived from the major mode =fundamental-mode= that has fewer than 10 lines will be considered a popup. 
 
-  Note that for performance reasons, predicates that classify a buffer as a popup are only run when the buffer is created. Thus dynamically changing a buffer's popup status based on its changing state is not possible (yet).
+  Note that for performance reasons, predicates that classify a buffer as a popup are /only run when the buffer is created/. Thus dynamically changing a buffer's popup status based on its changing state is not possible (yet).
   
   There are other customization options, check the =popper= group.
 

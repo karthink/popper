@@ -400,7 +400,7 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                                           nil nil 'equal))))
       (pop popper-open-popup-alist)
       (with-selected-window win
-        (bury-buffer)
+        ;; (bury-buffer) ;; Unnecessary when using quit-window
         ;;only close window when window has a parent or in a child frame:
         (popper--delete-popup win)))))
 
@@ -430,13 +430,9 @@ a popup buffer to open."
   "Delete popup window WIN in a manner appropriate to its type."
   (when (window-valid-p win)
     (cond
-     ((window-parent win) (delete-window win))
+     ((window-parent win) (quit-window nil win))
      ((frame-parent) (delete-frame))
-     (t (if-let* ((wob (window-prev-buffers win))
-                  (bprev (caar wob))
-                  (blivep (buffer-live-p bprev)))
-            (with-selected-window win
-              (switch-to-buffer bprev)))))))
+     (t (quit-window nil win)))))
 
 (defun popper--modified-mode-line ()
   "Return modified mode-line string."
