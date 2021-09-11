@@ -1,5 +1,7 @@
 #+title: Popper.el
 
+/New in v0.40: Auto-hide or suppress popup buffers, assign popups by predicate/
+
 Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
 while still keeping them within arm's reach. Designate any buffer to "popup"
 status, and it will stay out of your way. Disimss or summon it easily with one
@@ -60,11 +62,12 @@ Additionally, you can turn a regular window into a popup (or vice-versa) with =p
     (setq popper-reference-buffers
           '("\\*Messages\\*"
             "Output\\*$"
+            "\\*Async Shell Command\\*"
             help-mode
             compilation-mode))
     (popper-mode +1))
 #+END_SRC
-See [[*Customization][Customization]] for details on specifying buffer types as popups.
+See the Customization section for details on specifying buffer types as popups.
 
 ** Without =use-package=
 #+BEGIN_SRC emacs-lisp
@@ -72,13 +75,14 @@ See [[*Customization][Customization]] for details on specifying buffer types as 
   (setq popper-reference-buffers
         '("\\*Messages\\*"
           "Output\\*$"
+          "\\*Async Shell Command\\*"
           help-mode
           compilation-mode))
   (global-set-key (kbd "C-`") 'popper-toggle-latest)  
   (global-set-key (kbd "M-`") 'popper-cycle)  
   (popper-mode +1)
 #+END_SRC
-See [[*Customization][Customization]] for details on specifying buffer types as popups.
+See the Customization section for details on specifying buffer types as popups.
 
 * Customization
 :PROPERTIES:
@@ -86,25 +90,42 @@ See [[*Customization][Customization]] for details on specifying buffer types as 
 :END:
 To get started, customize this variable:
 
-- =popper-reference-buffers=: List of buffers to treat as popups. Each entry in the list can be a regexp (string) to match buffer names against, or a major-mode (symbol) to match buffer major-modes against.
+- =popper-reference-buffers=: List of buffers to treat as popups. Each entry in the list can be a regexp (string) to match buffer names against or a major-mode (symbol) to match buffer major-modes against.
 
   Example: 
 
   #+BEGIN_SRC emacs-lisp
-    '("\\*Messages\\*"
-      "Output\\*$"
-      help-mode
-      compilation-mode)
+    (setq popper-reference-buffers
+          '("\\*Messages\\*"
+            "Output\\*$"
+            help-mode
+            compilation-mode))
   #+END_SRC
 
   Will treat the following as popups: The Messages buffer, any buffer ending in "Output*", and all help and compilation buffers.
 
+  As of v0.40, Popper also supports classifying a buffer as a popup based on any user supplied predicate. This predicate (function) is called with the buffer as argument and returns =t= if it should be considered a popup. Here is an example with a predicate:
+  
+  #+BEGIN_SRC emacs-lisp
+    (setq popper-reference-buffers
+          '("\\*Messages\\*"
+            help-mode
+            (lambda (buf) (with-current-buffer buf
+                       (and (derived-mode-p 'fundamental-mode)
+                            (< (count-lines (point-min) (point-max))
+                               10)))))))
+  #+END_SRC
+  
+  This list includes the the Messages and =help-mode= buffers from before, along with a predicate: any buffer derived from the major mode =fundamental-mode= that has fewer than 10 lines will be considered a popup. 
+
+  Note that for performance reasons, predicates that classify a buffer as a popup are /only run when the buffer is created/. Thus dynamically changing a buffer's popup status based on its changing state is not possible (yet).
+  
   There are other customization options, check the =popper= group.
 
 ** Grouping popups by context
 Popper can group popups by "context", so that the popups available for display are limited to those that are relevant to the context in which =popper-toggle-latest= or =popper-cycle= is called. For example, when cycling popups from a project buffer, you may only want to see the popups (REPLs, help buffers and compilation output, say) that were spawned from buffers in that project. This is intended to approximate DWIM behavior, so that the most relevant popup in any context is never more than one command away.
 
-Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, using =perspective= names, as well as the default directory of a buffer. To set this, customize =popper-group-function= or use one of
+Built in contexts include projects as defined in Emacs' built in =project.el= and =projectile=, using =perspective= names (from =persp.el=), as well as the default directory of a buffer. To set this, customize =popper-group-function= or use one of
 
 #+BEGIN_SRC emacs-lisp
   (setq popper-group-function #'popper-group-by-project) ; project.el projects
@@ -131,7 +152,7 @@ You can also provide a custom function that takes no arguments, is executed in t
   (setq popper-group-function #'popper-group-by-my-rule)
 #+END_SRC
 
-**  Managing popup placement
+** Managing popup placement
 In keeping with the principle of least surprise, all popups are shown in the same location: At the bottom of the frame. You can customize =popper-display-function= to change how popups are displayed.
 
 However this means you can't have more than one popup open at a time. You may also want more control over where individual popups appear. For example, you may want an IDE-like set-up, with all help windows open on the right, REPLs on top and compilation windows at the bottom. This is best done by customizing Emacs' =display-buffer-alist=. Since this is a [[https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html#The-Zen-of-Buffer-Display][singularly confusing task]], I recommend using =popper= with a package that locks window placements, /e.g./ [[https://depp.brause.cc/shackle/][Shackle]].
@@ -162,6 +183,37 @@ If you already have rules in place for how various buffers should be displayed, 
   :config
   (setq popper-display-control nil))
 #+end_src
+
+** Suppressing popups
+Popper can suppress popups when they are first created. The buffer will be registered in the list of popups but will not show up on your screen. Instead, a message ("Popup suppressed: $buffer-name") will be printed to the echo area. You can then raise it using =popper-toggle-latest= or =popper-cycle= at your convenience. It behaves as a regular popup from that point on:
+
+[[https://user-images.githubusercontent.com/8607532/132929265-37eee976-131f-4631-9bad-73090bf17231.mp4]]
+# [[file:images/popper-hide-popup.gif]]
+
+To specify popups to auto-hide, use a cons cell with the =hide= symbol when specifying =popup-reference-buffers=:
+
+#+begin_src emacs-lisp
+  (setq popper-reference-buffers
+      '(("Output\\*$" . hide)
+        (completion-list-mode . hide)
+        occur-mode
+        "\\*Messages\\*"))
+#+end_src
+
+This assignment will suppress all buffers ending in =Output*= and the Completions buffer. The other entries are treated as normal popups.
+
+You can combine the hiding feature with predicates for classifying buffers as popups:
+
+#+BEGIN_SRC emacs-lisp
+  (defun popper-shell-output-empty-p (buf)
+    (and (string-match-p "\\*Async Shell Command\\*" (buffer-name buf))
+         (= (buffer-size buf) 0)))
+
+  (add-to-list 'popper-reference-buffers
+               '(popper-shell-output-empty-p . hide))
+#+END_SRC
+
+This assignment will suppress display of the async shell command output buffer, but only when there is no output (stdout). Once it is hidden it will be treated as a popup on par with other entries in =popper-reference-buffers=.
 
 * Technical notes
 =popper= uses a buffer local variable (=popper-popup-status=) to identify if a given buffer should be treated as a popup. Matching is always by buffer and not window, so having two windows of a buffer, one treated as a popup and one as a regular window, isn't possible (although you can do this with indirect clones). In addition, it maintains an alist of popup windows/buffers for cycling through.
