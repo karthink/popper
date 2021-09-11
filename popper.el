@@ -247,7 +247,7 @@ grouped by the predicate `popper-group-function'.")
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
   (let ((window (display-buffer-in-side-window
                  buffer
-                 '((window-height . popper--fit-window-height)
+                 `((window-height . ,popper-window-height)
                    (side . bottom)
                    (slot . 1)))))
     (select-window window)))
