@@ -106,8 +106,7 @@ Output*, and all help and compilation buffers.
 
 will match against the Messages buffer, all help buffers and any
 buffer with major-mode derived from fundamental mode that has
-fewer than 10 lines at time of creation.
-"
+fewer than 10 lines at time of creation."
   :type '(restricted-sexp :match-alternatives (stringp symbolp functionp consp))
   :group 'popper)
 
@@ -593,8 +592,7 @@ If BUFFER is not specified act on the current buffer instead."
 (declare-function popper--insert-type "popper")
 
 (defun popper--set-reference-vars ()
-  "Unpack `popper-reference-buffers' to`set the values of various
-  popper--reference- variables."
+  "Unpack `popper-reference-buffers' to set popper--reference- variables."
   (defun popper--classify-type (elm)
     (pcase elm
       ((pred stringp) 'name)
