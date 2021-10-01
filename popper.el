@@ -434,9 +434,12 @@ a popup buffer to open."
   "Delete popup window WIN in a manner appropriate to its type."
   (when (window-valid-p win)
     (cond
-     ((window-parent win) (if (window-parameter win 'window-side)
-			      (delete-window win)
-			    (quit-window nil win)))
+     ((window-parent win)
+      ;; Kludge. Side windows and regular windows are handled differently. The
+      ;; latter is still somewhat broken. This is a bad idea.
+      (if (window-parameter win 'window-side)
+	  (delete-window win)
+	(quit-window nil win)))
      ((frame-parent) (delete-frame))
      (t (quit-window nil win)))))
 
