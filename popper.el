@@ -197,6 +197,33 @@ the frame height.
   :type '(choice (integer :tag "Height in chars")
                  (function :tag "Height function")))
 
+(defcustom popper-open-popup-hook nil
+  "Hook run when a popup is opened.
+
+Each function in the hook is called with the opened popup-buffer
+as current."
+  :type 'hook
+  :group 'popper)
+
+(defcustom popper-message-transform-function nil
+  "Function to transform buffer names.
+
+This is called on buffer-names displayed by `popper-echo-names'.
+
+This function should accept a
+  string (the buffer name) and return a transformed string."
+  :type 'function
+  :group 'popper)
+
+(defface popper-echo-area
+  '((t :inverse-video t
+       :weight bold))
+  "Echo area face for opened popup.")
+
+(defface popper-echo-area-buried
+  '((t :inherit shadow))
+  "Echo area face for buried popups.")
+
 (defvar popper--reference-names nil
   "List of buffer names whose windows are treated as popups.")
 
@@ -344,7 +371,7 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                          (cl-set-difference popper-open-popup-alist open-popups :key #'cdr))))
     (setq popper-open-popup-alist (nreverse open-popups))
     ;; First remove all open popups that have been opened
-    (cl-loop for (win . buf) in open-popups do
+    (cl-loop for (_ . buf) in open-popups do
 	     (let* ((group-name (when popper-group-function
 				  (with-current-buffer buf (funcall popper-group-function))))
 		    (group-popups (cdr (assoc group-name popper-buried-popup-alist 'equal))))
@@ -425,9 +452,11 @@ a popup buffer to open."
       (if-let* ((new-popup (pop (alist-get identifier popper-buried-popup-alist
                                            nil 'remove 'equal)))
                 (buf (cdr new-popup)))
-          (if (buffer-live-p buf)
-              (display-buffer buf)
-            (popper-open-latest))
+          (if (not (buffer-live-p buf))
+              (popper-open-latest)
+            (display-buffer buf)
+            (with-current-buffer buf
+              (run-hooks 'popper-open-popup-hook)))
         (message no-popup-msg)))))
 
 (defun popper--delete-popup (win)
@@ -628,6 +657,33 @@ If BUFFER is not specified act on the current buffer instead."
   
   (dolist (entry popper-reference-buffers nil)
     (popper--insert-type entry)))
+
+;; Notify in echo area:
+(defun popper-echo-names ()
+  "Show popup list in echo area when cycling popups."
+  (let* ((group (when popper-group-function
+                  (funcall popper-group-function)))
+         (buried-popups (thread-last (alist-get group popper-buried-popup-alist nil nil 'equal)
+                          (mapcar #'cdr)
+                          (cl-remove-if-not #'buffer-live-p)
+                          (mapcar #'buffer-name)))
+         (open-popup (buffer-name))
+         (popup-strings
+          (cl-reduce #'concat
+                     (cons
+                      (propertize
+                       (funcall (or popper-message-transform-function #'identity)
+                                open-popup)
+                       'face 'popper-echo-area)
+                      (mapcar (lambda (b) (propertize
+                                      (concat ", " (funcall (or popper-message-transform-function
+                                                                #'identity)
+                                                            b))
+                                      'face 'popper-echo-area-buried))
+                              buried-popups)))))
+    (if group
+        (message "Group (%s): %s" group popup-strings)
+      (message "Popups: %s" popup-strings))))
 
 ;;;###autoload
 (define-minor-mode popper-mode
