@@ -2,14 +2,20 @@
 
 /New in v0.40: Auto-hide or suppress popup buffers, assign popups by predicate/
 
-Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
-while still keeping them within arm's reach. Designate any buffer to "popup"
-status, and it will stay out of your way. Disimss or summon it easily with one
-key. Cycle through all your "popups" or just the ones relevant to your current
-buffer. Useful for many things, including toggling display of REPLs,
-documentation, compilation or shell output, etc.
+/New in 0.45: popper-echo-mode for displaying popup names in the echo area and dispatching to them/
 
-There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]].
+Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
+while still keeping them within arm's reach.
+
+Designate any buffer to "popup" status, and it will stay out of your way.
+Disimss or summon it easily with one key. Cycle through all your "popups" or
+just the ones relevant to your current buffer. Group popups automatically so
+you're presented with the most relevant ones. Useful for many things, including
+toggling display of REPLs, documentation, compilation or shell output: any
+buffer you need quick access to but want kept out of your way!
+
+There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]]. [Note (10/2021): This demo is quite out
+of date at this point but covers the basics.]
 
 You can pre-designate any buffer (by name or major-mode) as a popup, and the
 status will be automatically applied when Emacs creates it.
@@ -19,34 +25,63 @@ respects window rules for buffers that you might have in =display-buffer-alist=
 or created using a window management package like =shackle.el=. Popper summons
 windows defined by the user as "popups" by simply calling =display-buffer=.
 
-**** Toggle a popup: 
-#+ATTR_ORG: :width 500
-#+ATTR_HTML: :width 500px
-[[file:images/popper-toggle-latest.gif]]
-**** Cycle through all your popups:
-#+ATTR_ORG: :width 500
-#+ATTR_HTML: :width 500px
-[[file:images/popper-cycle.gif]]
-**** Turn a regular window into a popup:
-#+ATTR_ORG: :width 500
-#+ATTR_HTML: :width 500px
-[[file:images/popper-demote.gif]]
+*** Toggle a popup: 
+# #+ATTR_ORG: :width 500
+# #+ATTR_HTML: :width 500px
+# [[file:images/popper-toggle-latest.gif]]
+Here I toggle a REPL for quick access.
 
-You can also promote a popup to a normal window.
-**** Or toggle all your popups at once:
+https://user-images.githubusercontent.com/8607532/135746327-c400aaf9-4aa1-4b6e-8b0a-0dd58c2690bb.mp4
+
+*** Cycle through all your popups:
+# #+ATTR_ORG: :width 500
+# #+ATTR_HTML: :width 500px
+# [[file:images/popper-cycle.gif]]
+Here I cycle through all "popup buffers" in quick succession. My popup buffers are the usual suspects: help buffers, REPLs, grep and occur buffers, shell and compilation output, log buffers etc.
+
+https://user-images.githubusercontent.com/8607532/135746363-aa3c3a25-cc9d-4907-a85f-07ea0d764238.mp4
+
+Note that popup buffers are indicated here by the marker "POP" in their modelines.
+*** Or jump to them instantly with hinting
+You can see your popups in the echo area and jump to them with a key.
+
+https://user-images.githubusercontent.com/8607532/135746395-dfe3b3e8-9d5a-4309-b521-9555a34bb73d.mp4
+*** Group your popups according to context
+With grouping turned on, I'm only shown the popups relevant to the current context (in this case the Popper project).
+
+https://user-images.githubusercontent.com/8607532/135746404-d8673390-d220-46fe-9b57-9dc81458cecd.mp4
+
+The context can be anything, see below. Projectile, Perspective and Project.el are supported out of the box.
+*** Turn a regular window into a popup:
+# #+ATTR_ORG: :width 500
+# #+ATTR_HTML: :width 500px
+# [[file:images/popper-demote.gif]]
+
+https://user-images.githubusercontent.com/8607532/135746418-21d32c74-e1f1-48f3-ba19-792c7cb2a51a.mp4
+
+Or promote a popup to regular window status.
+*** Popper respects your display buffer settings 
+
+https://user-images.githubusercontent.com/8607532/135746477-93f8fc3d-4806-4901-beae-904059584e72.mp4
+
+And windows open the way you have specified them to: in reused windows, side windows, new or child frames, etc. All display-buffer actions are supported except for displaying in atomic windows.
+*** ... you can toggle all your popups at once:
 #+ATTR_ORG: :width 500
 #+ATTR_HTML: :width 500px
-[[file:images/popper-toggle-all.gif]]
-
+[[file:images/popper-toggle-all.png]]
+# [[file:images/popper-toggle-all.gif]]
 * Usage
 To designate popups in your init file, see the customization section.
 
-There are two primary commands, you can bind them as convenient:
+Turn on =popper-mode=. There are two primary commands, you can bind them as
+convenient:
 
 - =popper-toggle-latest=: Show/hide the latest popup. Does more with prefix args.
 - =popper-cycle=: Cycle through your popups in sequence. With a prefix arg, cycle backwards.
 
 Additionally, you can turn a regular window into a popup (or vice-versa) with =popper-toggle-type=, and kill an open popup buffer with =popper-kill-latest-popup=.
+
+If you also want the echo-area hints, you can turn on =popper-echo-mode=.
 
 * Setup 
 =popper= is available in MELPA, so you can install it with =M-x package-install RET popper RET= after adding MELPA to your package archives list.
@@ -65,7 +100,8 @@ Additionally, you can turn a regular window into a popup (or vice-versa) with =p
             "\\*Async Shell Command\\*"
             help-mode
             compilation-mode))
-    (popper-mode +1))
+    (popper-mode +1)
+    (popper-echo-mode +1))                ; For echo area hints
 #+END_SRC
 See the Customization section for details on specifying buffer types as popups.
 
@@ -81,6 +117,7 @@ See the Customization section for details on specifying buffer types as popups.
   (global-set-key (kbd "C-`") 'popper-toggle-latest)  
   (global-set-key (kbd "M-`") 'popper-cycle)  
   (popper-mode +1)
+  (popper-echo-mode +1)                   ; For echo-area hints
 #+END_SRC
 See the Customization section for details on specifying buffer types as popups.
 
@@ -122,6 +159,19 @@ To get started, customize this variable:
   
   There are other customization options, check the =popper= group.
 
+  Here is an example of how I use Popper:
+  
+https://user-images.githubusercontent.com/8607532/135748097-268f5aae-ad42-44fa-9435-b63b960d45cf.mp4
+
+  In this example:
+  - Popup buffers have no modelines.
+  - My popups are grouped by project, so I only see popups relevant to the current one.
+  - I use the echo-area hints to select popups with the number keys.
+  - These hints have their buffer names truncated so they're easier to read.
+  - My popups show up in different ways on screen depending on my display-buffer settings: Help windows on the right, REPLs and command output at the bottom, grep buffers at the top etc.
+    
+    This section details these (and other) customization options.
+    
 ** Grouping popups by context
 Popper can group popups by "context", so that the popups available for display are limited to those that are relevant to the context in which =popper-toggle-latest= or =popper-cycle= is called. For example, when cycling popups from a project buffer, you may only want to see the popups (REPLs, help buffers and compilation output, say) that were spawned from buffers in that project. This is intended to approximate DWIM behavior, so that the most relevant popup in any context is never more than one command away.
 
@@ -190,6 +240,8 @@ Popper can suppress popups when they are first created. The buffer will be regis
 [[https://user-images.githubusercontent.com/8607532/132929265-37eee976-131f-4631-9bad-73090bf17231.mp4]]
 # [[file:images/popper-hide-popup.gif]]
 
+This is generally useful to keep buffers that are created as a side effect from interrupting your work.
+
 To specify popups to auto-hide, use a cons cell with the =hide= symbol when specifying =popup-reference-buffers=:
 
 #+begin_src emacs-lisp
@@ -215,7 +267,18 @@ You can combine the hiding feature with predicates for classifying buffers as po
 
 This assignment will suppress display of the async shell command output buffer, but only when there is no output (stdout). Once it is hidden it will be treated as a popup on par with other entries in =popper-reference-buffers=.
 
+** Mode line and Echo area customization 
+- To change the modeline string used by Popper (the default is "POP"), customize =popper-mode-line=. You can disable the modeline entirely by setting it to nil.
+- You can change the keys used to access popups when using =popper-echo-mode= by customizing the =popper-echo-dispatch-keys= variable. To retain the display while removing the keymap, set this variable to =nil=.
+- You can change the number of minibuffer lines used for display by =popper-echo-mode= by customizing =popper-echo-lines=.
+- If you want to change the buffer names displayed in the echo area in some way (such as to color them by mode or truncate long names), you can customize the variable =popper-echo-transform-function=.
+
+* Alternatives
+Packages like [[https://github.com/amno1/emacs-term-toggle][Term Toggle]] and [[https://github.com/4DA/eshell-toggle][eshell toggle]] give you an easy way to access a "dropdown" terminal. Popper can be used for this almost trivially, but it's a much more general solution for buffer management and access.
+
+Packages like [[https://depp.brause.cc/shackle/][Shackle]] help with specifying how certain buffers should be displayed, but don't give you an easy way to access them beyond calling display-buffer. Popper is mainly concerned with the latter and is thus more or less orthogonal to Shackle. Moreover, most window management packages for Emacs are opinionated in how windows should be displayed, or provide an additional API to customize this (e.g. [[https://github.com/emacsorphanage/popwin][Popwin]]). While Popper defaults to displaying popups a certain way, it tries to stay out of the business of display rules and focuses on providing one-key access to the buffers you're most likely to need next.
 * Technical notes
 =popper= uses a buffer local variable (=popper-popup-status=) to identify if a given buffer should be treated as a popup. Matching is always by buffer and not window, so having two windows of a buffer, one treated as a popup and one as a regular window, isn't possible (although you can do this with indirect clones). In addition, it maintains an alist of popup windows/buffers for cycling through.
 
 By default, it installs a single rule in =display-buffer-alist= to handle displaying popups. If =popper-display-control= is set to =nil=, this rule is ignored. You can change how the popups are shown by customizing =popper-display-function=, the function used by =display-buffer= to display popups, although you are better off customizing =display-buffer-alist= directly or using Shackle. 
+

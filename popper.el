@@ -489,7 +489,7 @@ Note that buffers that are displayed in the same 'position' on
 the screen by `display-buffer' will not all be displayed."
   (let ((group (when popper-group-function
                  (funcall popper-group-function))))
-    (while popper-buried-popup-alist
+    (while (alist-get group popper-buried-popup-alist nil nil 'equal)
       (popper-open-latest group))))
 
 (defun popper-toggle-latest (&optional arg)
