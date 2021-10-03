@@ -3,7 +3,7 @@
 ;; Copyright (C) 2021  Karthik Chikmagalur
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
-;; Version: 0.30
+;; Version: 0.45
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
@@ -38,6 +38,7 @@
 ;;
 ;; COMMANDS:
 ;;
+;; popper-mode          : Turn on popup management
 ;; popper-toggle-latest : Toggle latest popup
 ;; popper-cycle         : Cycle through all popups, or close all open popups
 ;; popper-toggle-type   : Turn a regular window into a popup or vice-versa
@@ -65,6 +66,10 @@
 ;; `display-buffer-alist' (or through a package like Shackle), set this
 ;; variable to nil.
 ;;
+;; There are other customization options, such as the ability to suppress
+;; certain popups and keep them from showing. Please customize the popper group
+;; for details.
+
 ;;; Code:
 
 (require 'cl-lib)
@@ -205,29 +210,6 @@ as current."
   :type 'hook
   :group 'popper)
 
-(defcustom popper-message-transform-function nil
-  "Function to transform buffer names.
-
-This is called on buffer-names displayed by `popper-echo-names'.
-
-This function should accept a
-  string (the buffer name) and return a transformed string."
-  :type 'function
-  :group 'popper)
-
-(defface popper-echo-area
-  '((t :inverse-video t
-       :weight bold))
-  "Echo area face for opened popup.")
-
-(defface popper-echo-area-buried
-  '((t :inherit shadow))
-  "Echo area face for buried popups.")
-
-(defface popper-dispatch-hint
-  '((t :inherit highlight))
-  "Echo area face for popper dispatch key hints.")
-
 (defvar popper--reference-names nil
   "List of buffer names whose windows are treated as popups.")
 
@@ -257,19 +239,6 @@ should be considered a popup")
 
 If `popper-group-function' is non-nil, these are
 grouped by the predicate `popper-group-function'.")
-
-(defvar popper-dispatch-keys nil
-  "List of keys used for dispatching to popup buffers.
-
-Each entry in the list can be a character or a string suitable
-for the kbd macro.
-
-Examples:
-'(?q ?w ?e ?r ?t ?y ?u ?i ?o ?p)
-'(\"M-1\" \"M-2\" \"M-3\" \"M-4\" \"M-5\")
-
-This variable has no effect when echo-area display of
-popups (using popper-echo-names) is turned off.")
 
 (defvar-local popper-popup-status nil
   "Identifies a buffer as a popup by its buffer-local value.
@@ -674,92 +643,6 @@ If BUFFER is not specified act on the current buffer instead."
   
   (dolist (entry popper-reference-buffers nil)
     (popper--insert-type entry)))
-
-;; Notify in echo area:
-(defun popper-echo-names ()
-  "Show popup list in echo area when cycling popups."
-  (let* ((message-log-max nil)          ;No logging of these messages
-         (group (when popper-group-function
-                  (funcall popper-group-function)))
-         (buried-popups (thread-last (alist-get group popper-buried-popup-alist nil nil 'equal)
-                          (mapcar #'cdr)
-                          (cl-remove-if-not #'buffer-live-p)
-                          (mapcar #'buffer-name)))
-         (open-popup (buffer-name))
-         (dispatch-keys-extended (append popper-dispatch-keys
-                                     (make-list (max 0 (- (length buried-popups)
-                                                          (length popper-dispatch-keys)))
-                                                nil)))
-         (popup-strings
-          (cl-reduce #'concat
-                     (cons
-                      (propertize
-                       (funcall (or popper-message-transform-function #'identity)
-                                open-popup)
-                       'face 'popper-echo-area)
-                      (cl-mapcar (lambda (key buf)
-                                   (concat
-                                    (propertize ", " 'face 'popper-echo-area-buried)
-                                    (when key
-                                      (concat 
-                                       (propertize "[" 'face 'popper-echo-area-buried)
-                                       (propertize (if (characterp key)
-                                                       (char-to-string key)
-                                                     key)
-                                                   'face 'popper-dispatch-hint)
-                                       (propertize "]" 'face 'popper-echo-area-buried)))
-                                    (propertize (funcall (or popper-message-transform-function
-                                                             #'identity)
-                                                         buf)
-                                                'face 'popper-echo-area-buried)))
-                                 dispatch-keys-extended
-                                 buried-popups)))))
-    (if group
-        (message "Group (%s): %s" group popup-strings)
-      (message "Popups: %s" popup-strings))
-    (set-transient-map (let ((map (make-sparse-keymap))
-                             (i 0))
-                         (dolist (keybind popper-dispatch-keys map)
-                           (define-key map (cond
-                                            ((characterp keybind)
-                                             (make-vector 1 keybind))
-                                            ((stringp keybind)
-                                             (kbd keybind)))
-                             (popper--dispatch-toggle i buried-popups))
-
-                           (define-key map
-                             (kbd
-                              (concat "k " (cond
-                                            ((characterp keybind)
-                                             (char-to-string keybind))
-                                            ((stringp keybind)
-                                             keybind))))
-                             (popper--dispatch-kill i buried-popups))
-                           (setq i (1+ i))))
-                       t)))
-
-(defun popper--dispatch-toggle (i buf-list)
-  "Returns a function to switch to buffer I in list BUF-LIST.
-
-This is used to create functions for switching between popups
-quickly."
-  (lambda ()
-    (interactive)
-    (popper-close-latest)
-    (display-buffer (nth i buf-list))
-    (popper--update-popups)
-    (popper-echo-names)))
-
-(defun popper--dispatch-kill (i buf-list)
-  "Kill buffer I in list BUF-LIST."
-  (lambda ()
-    (interactive)
-    (let* ((buf (nth i buf-list))
-           (win (get-buffer-window buf)))
-      (kill-buffer buf)
-      (popper--delete-popup win))
-    (popper--update-popups)
-    (popper-echo-names)))
 
 ;;;###autoload
 (define-minor-mode popper-mode
