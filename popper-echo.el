@@ -61,7 +61,7 @@ This function should accept a
   :type 'function
   :group 'popper)
 
-(defcustom popper-echo-lines 1
+(defcustom popper-echo-lines 2
   "Number of minibuffer lines used to show popup buffer names by `popper-echo'.
 
 This has no effect when popper-echo-mode is turned off."
