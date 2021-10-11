@@ -111,14 +111,14 @@ off."
   (let* ((message-log-max nil)
          (grp-symb (when popper-group-function
                        (funcall popper-group-function)))
-         (group (if (and grp-symb (symbolp grp-symb))
-                         (symbol-name grp-symb)
-                       grp-symb))
-         (buried-popups (thread-last (alist-get group popper-buried-popup-alist nil nil 'equal)
+         (buried-popups (thread-last (alist-get grp-symb popper-buried-popup-alist nil nil 'equal)
                           (mapcar #'cdr)
                           (cl-remove-if-not #'buffer-live-p)
                           (mapcar #'buffer-name)
                           (delete-dups)))
+         (group (if (and grp-symb (symbolp grp-symb))
+                         (symbol-name grp-symb)
+                       grp-symb))
          (open-popup (buffer-name))
          (dispatch-keys-extended (append popper-echo-dispatch-keys
                                      (make-list (max 0 (- (length buried-popups)

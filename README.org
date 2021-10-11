@@ -4,8 +4,8 @@
 [[https://melpa.org/#/popper][file:https://melpa.org/packages/popper-badge.svg]]
 :END:
 
-- /New in v0.40: Auto-hide or suppress popup buffers, assign popups by predicate/
 - /New in v0.45: popper-echo-mode for displaying popup names in the echo area and dispatching to them/
+- /New in v0.40: Auto-hide or suppress popup buffers, assign popups by predicate/
 
 Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
 while still keeping them within arm's reach.
