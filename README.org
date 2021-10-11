@@ -4,7 +4,7 @@
 [[https://melpa.org/#/popper][file:https://melpa.org/packages/popper-badge.svg]]
 :END:
 
-- /New in v0.45: popper-echo-mode for displaying popup names in the echo area and dispatching to them/
+- /New in v0.45: popper-echo-mode for displaying popup names in the echo area and dispatching on them/
 - /New in v0.40: Auto-hide or suppress popup buffers, assign popups by predicate/
 
 Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
@@ -67,7 +67,7 @@ Or promote a popup to regular window status.
 
 https://user-images.githubusercontent.com/8607532/135746477-93f8fc3d-4806-4901-beae-904059584e72.mp4
 
-And windows open the way you have specified them to: in reused windows, side windows, new or child frames, etc. All display-buffer actions are supported except for displaying in atomic windows.
+And windows open the way you have specified them to: in reused windows, side windows, new or child frames, etc. All display-buffer actions are supported except for displaying in popups in new frames and in atomic windows.
 *** ... you can toggle all your popups at once:
 #+ATTR_ORG: :width 500
 #+ATTR_HTML: :width 500px
