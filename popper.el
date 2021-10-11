@@ -638,7 +638,7 @@ If BUFFER is not specified act on the current buffer instead."
                (pcase (popper--classify-type (car elm))
                  ('name (cl-pushnew (car elm) popper--suppressed-names))
                  ('mode (cl-pushnew (car elm) popper--suppressed-modes))
-                 ('pred (cl-pushnew (car elm) popper--suppressed-modes))))
+                 ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
              (popper--insert-type (car elm)))))
   
   (dolist (entry popper-reference-buffers nil)
