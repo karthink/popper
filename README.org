@@ -118,7 +118,8 @@ See the Customization section for details on specifying buffer types as popups.
           help-mode
           compilation-mode))
   (global-set-key (kbd "C-`") 'popper-toggle-latest)  
-  (global-set-key (kbd "M-`") 'popper-cycle)  
+  (global-set-key (kbd "M-`") 'popper-cycle)
+  (global-set-key (kbd "C-M-`") 'popper-toggle-type)
   (popper-mode +1)
   (popper-echo-mode +1)                   ; For echo-area hints
 #+END_SRC
@@ -143,6 +144,19 @@ To get started, customize this variable:
   #+END_SRC
 
   Will treat the following as popups: The Messages buffer, any buffer ending in "Output*", and all help and compilation buffers.
+
+  *Note: Because of how some shell buffers are initialized in Emacs, you may need to supply both the name and major mode to match them consistently*. Take your pick:
+
+  #+BEGIN_SRC emacs-lisp
+    ;; Match eshell, shell, term and/or vterm buffers
+    (setq popper-reference-buffers
+          (append popper-reference-buffers
+                  '("^\\*eshell.*\\*$" eshell-mode ;eshell as a popup
+                    "^\\*shell.*\\*$"  shell-mode  ;shell as a popup
+                    "^\\*term.*\\*$"   term-mode   ;term as a popup
+                    "^\\*vterm.*\\*$"  vterm-mode  ;vterm as a popup
+                    )))
+  #+END_SRC
 
   As of v0.40, Popper also supports classifying a buffer as a popup based on any user supplied predicate. This predicate (function) is called with the buffer as argument and returns =t= if it should be considered a popup. Here is an example with a predicate:
   
