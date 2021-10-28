@@ -15,7 +15,7 @@ Disimss or summon it easily with one key. Cycle through all your "popups" or
 just the ones relevant to your current buffer. Group popups automatically so
 you're presented with the most relevant ones. Useful for many things, including
 toggling display of REPLs, documentation, compilation or shell output: any
-buffer you need quick access to but want kept out of your way!
+buffer you need instant access to but want kept out of your way!
 
 There is a [[https://www.youtube.com/watch?v=E-xUNlZi3rI][detailed demo of Popper here]]. [Note (10/2021): This demo is quite out
 of date at this point but covers the basics.]
@@ -74,17 +74,19 @@ And windows open the way you have specified them to: in reused windows, side win
 [[file:images/popper-toggle-all.png]]
 # [[file:images/popper-toggle-all.gif]]
 * Usage
-To designate popups in your init file, see the customization section.
+Turn on =popper-mode=. 
 
-Turn on =popper-mode=. There are two primary commands, you can bind them as
+- Turn any buffer into a popup (or vice-versa) with =popper-toggle-type=.
+
+There are two commands for displaying popups, you can bind them as
 convenient:
 
 - =popper-toggle-latest=: Show/hide the latest popup. Does more with prefix args.
-- =popper-cycle=: Cycle through your popups in sequence. With a prefix arg, cycle backwards.
+- =popper-cycle=: Cycle through your popups in sequence.
 
-Additionally, you can turn a regular window into a popup (or vice-versa) with =popper-toggle-type=, and kill an open popup buffer with =popper-kill-latest-popup=.
+To automatically designate buffers as popups, see the customization section. Additionally, you can kill an open popup buffer with =popper-kill-latest-popup=.
 
-If you also want the echo-area hints, you can turn on =popper-echo-mode=.
+If you want the echo-area hints, turn on =popper-echo-mode=.
 
 * Setup 
 =popper= is available in MELPA, so you can install it with =M-x package-install RET popper RET= after adding MELPA to your package archives list.
