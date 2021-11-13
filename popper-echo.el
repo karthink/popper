@@ -73,8 +73,24 @@ This has no effect when popper-echo-mode is turned off."
   :type 'boolean
   :group 'popper)
 
-(defcustom popper-echo-dispatch-keys '("M-1" "M-2" "M-3" "M-4" "M-5")
+(defcustom popper-echo-dispatch-actions nil
+  "Controls whether `popper-echo' dispatch actions are bound.
+
+When true, you can
+- Kill popup buffers with k
+- Raise popup buffers with ^
+
+when using the dispatch menu by prefixing the dispatch keys with them.
+
+NOTE: This feature is experimental."
+  :type 'boolean
+  :group 'popper)
+
+(defcustom popper-echo-dispatch-keys '("M-0" "M-1" "M-2" "M-3" "M-4"
+                                       "M-5" "M-6" "M-7" "M-8" "M-9")
   "List of keys used for dispatching to popup buffers.
+
+The first element is bound to the currently open popup.
 
 Each entry in the list can be a character or a string suitable
 for the kbd macro. These keys are available when using
@@ -120,9 +136,9 @@ off."
                          (symbol-name grp-symb)
                        grp-symb))
          (open-popup (buffer-name))
-         (dispatch-keys-extended (append popper-echo-dispatch-keys
+         (dispatch-keys-extended (append (cdr popper-echo-dispatch-keys)
                                      (make-list (max 0 (- (length buried-popups)
-                                                          (length popper-echo-dispatch-keys)))
+                                                          (1- (length popper-echo-dispatch-keys))))
                                                 nil)))
          (popup-strings
           (cl-reduce #'concat
@@ -166,16 +182,28 @@ off."
                                              (make-vector 1 keybind))
                                             ((stringp keybind)
                                              (kbd keybind)))
-                             (popper-echo--dispatch-toggle i buried-popups))
-
-                           (define-key map
-                             (kbd
-                              (concat "k " (cond
-                                            ((characterp keybind)
-                                             (char-to-string keybind))
-                                            ((stringp keybind)
-                                             keybind))))
-                             (popper-echo--dispatch-kill i buried-popups))
+                             (popper-echo--dispatch-toggle i (cons open-popup
+                                                                   buried-popups)))
+                           (when popper-echo-dispatch-actions
+                             (define-key map
+                               (kbd
+                                (concat "k " (cond
+                                              ((characterp keybind)
+                                               (char-to-string keybind))
+                                              ((stringp keybind)
+                                               keybind))))
+                               (popper-echo--dispatch-kill i (cons open-popup
+                                                                   buried-popups)))
+                             
+                             (define-key map
+                               (kbd
+                                (concat "^ " (cond
+                                              ((characterp keybind)
+                                               (char-to-string keybind))
+                                              ((stringp keybind)
+                                               keybind))))
+                               (popper-echo--dispatch-raise i (cons open-popup
+                                                                    buried-popups))))
                            (setq i (1+ i)))))))
 
 
@@ -200,7 +228,21 @@ quickly."
       (kill-buffer buf)
       (popper--delete-popup win))
     (popper--update-popups)
-    (when popper-echo-dispatch-persist (popper-echo))))
+    (when (and popper-echo-dispatch-persist
+               popper-open-popup-alist)
+      (popper-echo))))
+
+(defun popper-echo--dispatch-raise (i buf-list)
+  "Return a function to Kill buffer I in list BUF-LIST."
+  (lambda ()
+    (interactive)
+    (let* ((buf (nth i buf-list))
+           (win (get-buffer-window buf)))
+      (popper-toggle-type buf))
+    (popper--update-popups)
+    (when (and popper-echo-dispatch-persist
+               popper-open-popup-alist)
+      (popper-echo))))
 
 ;;;###autoload
 (define-minor-mode popper-echo-mode
