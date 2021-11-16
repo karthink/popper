@@ -214,9 +214,10 @@ This is used to create functions for switching between popups
 quickly."
   (lambda (&optional arg)
     (interactive "P")
-    (unless arg (popper-close-latest))
-    (display-buffer (nth i buf-list))
-    (popper--update-popups)
+    (when-let ((buf (nth i buf-list)))
+      (unless arg (popper-close-latest))
+      (display-buffer buf)
+      (popper--update-popups))
     (when popper-echo-dispatch-persist (popper-echo))))
 
 (defun popper-echo--dispatch-kill (i buf-list)
