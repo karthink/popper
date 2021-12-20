@@ -257,12 +257,16 @@ grouped by the predicate `popper-group-function'.")
 
 (defun popper-select-popup-at-bottom (buffer &optional _alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
-  (let ((window (display-buffer-in-side-window
-                 buffer
-                 `((window-height . ,popper-window-height)
-                   (side . bottom)
-                   (slot . 1)))))
+  (let ((window (popper-display-popup-at-bottom buffer _alist)))
     (select-window window)))
+
+(defun popper-display-popup-at-bottom (buffer &optional _alist)
+  "Display popup-buffer BUFFER at the bottom of the screen."
+  (display-buffer-in-side-window
+   buffer
+   `((window-height . ,popper-window-height)
+     (side . bottom)
+     (slot . 1))))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF meets the criteria listed in `popper-reference-buffers'."
@@ -358,16 +362,16 @@ Each element of the alist is a cons cell of the form (window . buffer)."
     (setq popper-open-popup-alist (nreverse open-popups))
     ;; First remove all open popups that have been opened
     (cl-loop for (_ . buf) in open-popups do
-	     (let* ((group-name (when popper-group-function
-				  (with-current-buffer buf (funcall popper-group-function))))
-		    (group-popups (cdr (assoc group-name popper-buried-popup-alist 'equal))))
-	       (setf (alist-get group-name popper-buried-popup-alist
-				nil nil 'equal)
-		     (cl-remove buf group-popups :key #'cdr))))
+             (let* ((group-name (when popper-group-function
+                                  (with-current-buffer buf (funcall popper-group-function))))
+                    (group-popups (cdr (assoc group-name popper-buried-popup-alist 'equal))))
+               (setf (alist-get group-name popper-buried-popup-alist
+                                nil nil 'equal)
+                     (cl-remove buf group-popups :key #'cdr))))
     ;; Then add all popups that have been closed
     (cl-loop for (win . buf) in closed-popups do
-	     (let* ((group-name (when popper-group-function
-				  (with-current-buffer buf (funcall popper-group-function))))
+             (let* ((group-name (when popper-group-function
+                                  (with-current-buffer buf (funcall popper-group-function))))
                     (group-popups (cdr (assoc group-name popper-buried-popup-alist 'equal)))
                     (newpop (cons win buf)))
                (setf (alist-get group-name popper-buried-popup-alist
@@ -453,8 +457,8 @@ a popup buffer to open."
       ;; Kludge. Side windows and regular windows are handled differently. The
       ;; latter is still somewhat broken. This is a bad idea.
       (if (window-parameter win 'window-side)
-	  (delete-window win)
-	(quit-window nil win)))
+          (delete-window win)
+        (quit-window nil win)))
      ((frame-parent) (delete-frame))
      (t (quit-window nil win)))))
 
