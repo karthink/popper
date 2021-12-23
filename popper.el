@@ -574,10 +574,12 @@ If BUFFER is not specified act on the current buffer instead."
 (defun popper-kill-latest-popup ()
   "Kill the latest popup-buffer and delete its window."
   (interactive)
-  (cl-destructuring-bind ((win . buf) . rest) popper-open-popup-alist
-    (pop popper-open-popup-alist)
-    (popper--delete-popup win)
-    (kill-buffer buf)))
+  (pcase (pop popper-open-popup-alist)
+    (`(,win . ,buf)
+     (popper--delete-popup win)
+     (kill-buffer buf))
+    (t
+     (message "No open popups!"))))
 
 (defun popper--suppress-p (buf)
   "Predicate to check if popup-buffer BUF needs to be suppressed."
