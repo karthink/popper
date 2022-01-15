@@ -123,7 +123,10 @@ See the Customization section for details on specifying buffer types as popups.
   (global-set-key (kbd "M-`") 'popper-cycle)
   (global-set-key (kbd "C-M-`") 'popper-toggle-type)
   (popper-mode +1)
-  (popper-echo-mode +1)                   ; For echo-area hints
+
+  ;; For echo-area hints
+  (require 'popper-echo)
+  (popper-echo-mode +1)
 #+END_SRC
 See the Customization section for details on specifying buffer types as popups.
 
