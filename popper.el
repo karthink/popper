@@ -468,8 +468,9 @@ a popup buffer to open."
     (if (member popper-mode-line mode-line-format)
         mode-line-format
       (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
-              (cons popper-mode-line (nthcdr popper-mode-line-position
-                                             (default-value 'mode-line-format)))))))
+              (list popper-mode-line
+                    (nthcdr popper-mode-line-position
+                            (default-value 'mode-line-format)))))))
 
 (defun popper--restore-mode-lines (win-buf-alist)
   "Restore the default value of `mode-line-format'.
