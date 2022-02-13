@@ -285,7 +285,7 @@ This is intended to be used in `display-buffer-alist'."
       ('user
        (with-current-buffer buffer
          (eq popper-popup-status 'user-popup)))
-      ('t (with-current-buffer buffer
+      (_ (with-current-buffer buffer
             (or (memq popper-popup-status '(popup user-popup))
                 (unless (eq popper-popup-status 'raised)
                   (popper-popup-p buffer))))))))
