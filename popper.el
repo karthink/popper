@@ -464,7 +464,7 @@ a popup buffer to open."
 
 (defun popper--modified-mode-line ()
   "Return modified mode-line string."
-  (when popper-mode-line
+  (when (and popper-mode-line mode-line-format)
     (if (member popper-mode-line mode-line-format)
         mode-line-format
       (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
@@ -647,7 +647,7 @@ If BUFFER is not specified act on the current buffer instead."
                  ('mode (cl-pushnew (car elm) popper--suppressed-modes))
                  ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
              (popper--insert-type (car elm)))))
-  
+
   (dolist (entry popper-reference-buffers nil)
     (popper--insert-type entry)))
 
