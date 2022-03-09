@@ -286,9 +286,9 @@ This is intended to be used in `display-buffer-alist'."
        (with-current-buffer buffer
          (eq popper-popup-status 'user-popup)))
       ('t (with-current-buffer buffer
-            (or (memq popper-popup-status '(popup user-popup))
-                (unless (eq popper-popup-status 'raised)
-                  (popper-popup-p buffer))))))))
+           (or (memq popper-popup-status '(popup user-popup))
+               (unless (eq popper-popup-status 'raised)
+                 (popper-popup-p buffer))))))))
 
 (defun popper-group-by-directory ()
   "Return an identifier (default directory) to group popups.
@@ -585,7 +585,7 @@ If BUFFER is not specified act on the current buffer instead."
     (`(,win . ,buf)
      (popper--delete-popup win)
      (kill-buffer buf))
-    (t
+    (_
      (message "No open popups!"))))
 
 (defun popper--suppress-p (buf)
