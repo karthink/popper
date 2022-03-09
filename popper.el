@@ -464,14 +464,15 @@ a popup buffer to open."
 
 (defun popper--modified-mode-line ()
   "Return modified mode-line string."
-  (if (and popper-mode-line (consp mode-line-format))
-      (if (member popper-mode-line mode-line-format)
-          mode-line-format
-        (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
-                (list popper-mode-line
-                      (nthcdr popper-mode-line-position
-                              (default-value 'mode-line-format)))))
-    mode-line-format))
+  (when popper-mode-line
+    (if (consp mode-line-format)
+        (if (member popper-mode-line mode-line-format)
+            mode-line-format
+          (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
+                  (list popper-mode-line
+                        (nthcdr popper-mode-line-position
+                                (default-value 'mode-line-format)))))
+      mode-line-format)))
 
 (defun popper--restore-mode-lines (win-buf-alist)
   "Restore the default value of `mode-line-format'.
