@@ -255,9 +255,9 @@ grouped by the predicate `popper-group-function'.")
    (floor (frame-height) 3)
    (floor (frame-height) 6)))
 
-(defun popper-select-popup-at-bottom (buffer &optional _alist)
+(defun popper-select-popup-at-bottom (buffer &optional alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen."
-  (let ((window (popper-display-popup-at-bottom buffer _alist)))
+  (let ((window (popper-display-popup-at-bottom buffer alist)))
     (select-window window)))
 
 (defun popper-display-popup-at-bottom (buffer &optional _alist)
@@ -269,10 +269,11 @@ grouped by the predicate `popper-group-function'.")
      (slot . 1))))
 
 (defun popper-popup-p (buf)
-  "Predicate to test if buffer BUF meets the criteria listed in `popper-reference-buffers'."
+  "Predicate to test if buffer BUF qualifies for popper handling.
+Criteria are listed in `popper-reference-buffers'."
   (or (seq-some (lambda (buf-regexp)
-               (string-match-p buf-regexp (buffer-name buf)))
-             popper--reference-names)
+                  (string-match-p buf-regexp (buffer-name buf)))
+                popper--reference-names)
       (member (buffer-local-value 'major-mode buf) popper--reference-modes)
       (seq-some (lambda (pred) (funcall pred buf)) popper--reference-predicates)))
 
