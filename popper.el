@@ -137,7 +137,7 @@ Choices are:
  nil : Do not control popup placement.
  t   : Control placement of all popups."
   :group 'popper
-  :type '(choice (const :tag "Explicitly set popups only" 'user)
+  :type '(choice (const :tag "Explicitly set popups only" user)
                  (const :tag "All popups" t)
                  (const :tag "Never" nil)))
 
