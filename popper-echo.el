@@ -237,8 +237,7 @@ quickly."
   "Return a function to Kill buffer I in list BUF-LIST."
   (lambda ()
     (interactive)
-    (let* ((buf (nth i buf-list))
-           (win (get-buffer-window buf)))
+    (let* ((buf (nth i buf-list)))
       (popper-toggle-type buf))
     (popper--update-popups)
     (when (and popper-echo-dispatch-persist
