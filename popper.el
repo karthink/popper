@@ -404,6 +404,16 @@ Each element of the alist is a cons cell of the form (window . buffer)."
       (setq popper-buried-popup-alist
             (list (cons nil buried-popups))))))
 
+;; FIXME This is an ugly hack, find a better way.
+(defun popper--catch-after-init ()
+  "Find popups missed because of Emacs' startup behavior.
+
+When customized, Emacs' startup can change the window
+configuration without triggering
+`window-configuration-change-hook'. This is a hack to catch
+popups after init that slip the net because of this."
+  (run-at-time 1 nil #'popper--find-buried-popups))
+
 (defun popper-close-latest ()
   "Close the last opened popup."
   (unless popper-mode (user-error "Popper-mode not active!"))
@@ -673,6 +683,7 @@ details on how to designate buffer types as popups."
         (popper--update-popups)
         ;; popper--suppress-popups should run after popper--update-popups, so it's
         ;; added first.
+        (add-hook 'after-init-hook #'popper--catch-after-init)
         (add-hook 'window-configuration-change-hook #'popper--suppress-popups)
         (add-hook 'window-configuration-change-hook #'popper--update-popups)
         (add-hook 'select-frame-hook #'popper--update-popups)
@@ -680,6 +691,7 @@ details on how to designate buffer types as popups."
                      `(popper-display-control-p
                        (,popper-display-function))))
     ;; Turning the mode OFF
+    (remove-hook 'after-init-hook #'popper--catch-after-init)
     (remove-hook 'window-configuration-change-hook #'popper--update-popups)
     (remove-hook 'window-configuration-change-hook #'popper--suppress-popups)
     (remove-hook 'select-frame-hook #'popper--update-popups)
