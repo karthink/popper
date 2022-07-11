@@ -260,13 +260,14 @@ grouped by the predicate `popper-group-function'.")
   (let ((window (popper-display-popup-at-bottom buffer alist)))
     (select-window window)))
 
-(defun popper-display-popup-at-bottom (buffer &optional _alist)
+(defun popper-display-popup-at-bottom (buffer &optional alist)
   "Display popup-buffer BUFFER at the bottom of the screen."
   (display-buffer-in-side-window
    buffer
-   `((window-height . ,popper-window-height)
-     (side . bottom)
-     (slot . 1))))
+   (append alist 
+           `((window-height . ,popper-window-height)
+             (side . bottom)
+             (slot . 1)))))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF qualifies for popper handling.
