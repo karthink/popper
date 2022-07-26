@@ -471,10 +471,9 @@ a popup buffer to open."
     (if (consp mode-line-format)
         (if (member popper-mode-line mode-line-format)
             mode-line-format
-          (append (cl-subseq (default-value 'mode-line-format) 0 popper-mode-line-position)
+          (append (cl-subseq mode-line-format 0 popper-mode-line-position)
                   (list popper-mode-line
-                        (nthcdr popper-mode-line-position
-                                (default-value 'mode-line-format)))))
+                        (nthcdr popper-mode-line-position mode-line-format))))
       mode-line-format)))
 
 (defun popper--restore-mode-lines (win-buf-alist)
@@ -484,7 +483,7 @@ This applies to popup-buffers in the list WIN-BUF-ALIST."
   (dolist (buf (mapcar 'cdr win-buf-alist))
     (when (buffer-live-p buf)
       (with-current-buffer buf
-        (setq mode-line-format (default-value 'mode-line-format))
+        (setq mode-line-format (delete popper-mode-line mode-line-format))
         (force-mode-line-update)))))
 
 (defun popper--bury-all ()
