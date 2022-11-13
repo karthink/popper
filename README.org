@@ -105,6 +105,7 @@ If you want the echo-area hints, turn on =popper-echo-mode=.
             "\\*Async Shell Command\\*"
             help-mode
             compilation-mode))
+    :config
     (popper-mode +1)
     (popper-echo-mode +1))                ; For echo area hints
 #+END_SRC
