@@ -348,7 +348,12 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                                               'suppressed
                                             'popup))))
           (push (cons (get-buffer-window b) b)
-                open-popups))))))
+                open-popups))))
+    (cl-sort open-popups
+             (lambda (a b) (time-less-p b a))
+             :key (lambda (p)
+                    (buffer-local-value 'buffer-display-time
+                                        (cdr p))))))
 
 (defun popper--update-popups ()
   "Update the list of currently open popups.
