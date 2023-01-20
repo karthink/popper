@@ -117,7 +117,7 @@ off."
   :group 'popper)
 
 (defface popper-echo-dispatch-hint
-  '((t :inherit highlight))
+  '((t :inherit bold))
   "Echo area face for popper dispatch key hints."
   :group 'popper)
 
@@ -143,25 +143,25 @@ off."
          (popup-strings
           (cl-reduce #'concat
                      (cons
-                      (propertize
-                       (funcall (or popper-echo-transform-function #'identity)
-                                open-popup)
-                       'face 'popper-echo-area)
+                      (if-let ((transform popper-echo-transform-function))
+                          (funcall transform open-popup)
+                        (propertize open-popup 'face 'popper-echo-area))
                       (cl-mapcar (lambda (key buf)
                                    (concat
                                     (propertize ", " 'face 'popper-echo-area-buried)
-                                    (when key
+                                    (propertize "[" 'face 'popper-echo-area-buried)
+                                    (and key
+                                         (concat
+                                          (propertize (if (characterp key)
+                                                          (char-to-string key)
+                                                        key)
+                                                      'face 'popper-echo-dispatch-hint)
+                                          (propertize ":" 'face 'popper-echo-area-buried)))
+                                    (if-let ((transform popper-echo-transform-function))
+                                        (funcall transform buf)
                                       (concat
-                                       (propertize "[" 'face 'popper-echo-area-buried)
-                                       (propertize (if (characterp key)
-                                                       (char-to-string key)
-                                                     key)
-                                                   'face 'popper-echo-dispatch-hint)
-                                       (propertize "]" 'face 'popper-echo-area-buried)))
-                                    (propertize (funcall (or popper-echo-transform-function
-                                                             #'identity)
-                                                         buf)
-                                                'face 'popper-echo-area-buried)))
+                                       (propertize buf 'face 'popper-echo-area-buried)))
+                                    (propertize "]" 'face 'popper-echo-area-buried)))
                                  dispatch-keys-extended
                                  buried-popups)))))
     (let* ((max-width (- (* popper-echo-lines (frame-width))
