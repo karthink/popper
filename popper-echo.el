@@ -97,8 +97,8 @@ for the kbd macro. These keys are available when using
 popper-echo-mode.
 
 Examples:
-'(?q ?w ?e ?r ?t ?y ?u ?i ?o ?p)
-'(\"M-1\" \"M-2\" \"M-3\" \"M-4\" \"M-5\")
+\\='(?q ?w ?e ?r ?t ?y ?u ?i ?o ?p)
+\\='(\"M-1\" \"M-2\" \"M-3\" \"M-4\" \"M-5\")
 
 This variable has no effect when popper-echo-mode is turned
 off."
