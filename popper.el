@@ -94,7 +94,7 @@ major-modes against, or a predicate of one argument (a buffer).
 
 Examples:
 
-'(\"\\*Messages\\*\"
+\\='(\"\\*Messages\\*\"
   \"Output\\*$\"
   help-mode
   compilation-mode)
@@ -102,10 +102,10 @@ Examples:
 Will match against the Messages buffer, any buffer ending in
 Output*, and all help and compilation buffers.
 
-'(\"\\*Messages\\*\"
+\\='(\"\\*Messages\\*\"
   help-mode
   (lambda (buf) (with-current-buffer buf
-             (and (derived-mode-p 'fundamental-mode)
+             (and (derived-mode-p \\='fundamental-mode)
                   (< (count-lines (point-min) (point-max))
                      10)))))
 
@@ -133,7 +133,7 @@ the mode-line entirely from popper."
 (defcustom popper-display-control t
   "Whether popper should control the placement of popup windows.
 Choices are:
-'user: The default. Only control placement of explicitly marked popups.
+\\='user: The default. Only control placement of explicitly marked popups.
  nil : Do not control popup placement.
  t   : Control placement of all popups."
   :group 'popper
@@ -242,11 +242,11 @@ grouped by the predicate `popper-group-function'.")
 
 (defvar-local popper-popup-status nil
   "Identifies a buffer as a popup by its buffer-local value.
-  Valid values are 'popup, 'raised, 'user-popup or nil.
+  Valid values are \\='popup, \\='raised, \\='user-popup or nil.
 
-'popup     : This is a popup buffer specified in `popper-reference-buffers'.
-'raised    : This is a POPUP buffer raised to regular status by the user.
-'user-popup: This is a regular buffer lowered to popup status by the user.")
+\\='popup     : This is a popup buffer specified in `popper-reference-buffers'.
+\\='raised    : This is a POPUP buffer raised to regular status by the user.
+\\='user-popup: This is a regular buffer lowered to popup status by the user.")
 
 (defun popper--fit-window-height (win)
   "Determine the height of popup window WIN by fitting it to the buffer's content."
@@ -500,7 +500,7 @@ This applies to popup-buffers in the list WIN-BUF-ALIST."
 (defun popper--open-all ()
   "Open all popups.
 
-Note that buffers that are displayed in the same 'position' on
+Note that buffers that are displayed in the same position on
 the screen by `display-buffer' will not all be displayed."
   (let ((group (when popper-group-function
                  (funcall popper-group-function))))
@@ -516,7 +516,7 @@ inconsistent.)
 
 With a double prefix ARG \\[universal-argument]
 \\[universal-argument], toggle all popup-windows. Note that only
-one buffer can be show in one 'slot', so it will display as many
+one buffer can be show in one slot, so it will display as many
 windows as it can."
   (interactive "p")
   (let ((group (when popper-group-function
