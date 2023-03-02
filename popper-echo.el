@@ -132,9 +132,7 @@ off."
                           (cl-remove-if-not #'buffer-live-p)
                           (mapcar #'buffer-name)
                           (delete-dups)))
-         (group (if (and grp-symb (symbolp grp-symb))
-                         (symbol-name grp-symb)
-                       grp-symb))
+         (group (and grp-symb (concat (substring (format "Group (%S" grp-symb) 0 27) "): ")))
          (open-popup (buffer-name))
          (dispatch-keys-extended (append (cdr popper-echo-dispatch-keys)
                                      (make-list (max 0 (- (length buried-popups)
@@ -164,13 +162,12 @@ off."
                                     (propertize "]" 'face 'popper-echo-area-buried)))
                                  dispatch-keys-extended
                                  buried-popups)))))
-    (let* ((max-width (- (* popper-echo-lines (frame-width))
-                         (if group (+ 13 (length group)) 11)))
+    (let* ((max-width (- (* popper-echo-lines (frame-width)) (if group (length group) 11)))
            (plen (length popup-strings))
            (space-p (> max-width plen)))
       (message "%s"
                (concat
-                (if group (format "Group (%s): " group) "Popups: ")
+                (or group "Popups: ")
                 (substring popup-strings 0 (if space-p plen max-width))
                 (unless space-p
                   (propertize "..." 'face 'popper-echo-area-buried)))))
