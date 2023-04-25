@@ -132,7 +132,9 @@ off."
                           (cl-remove-if-not #'buffer-live-p)
                           (mapcar #'buffer-name)
                           (delete-dups)))
-         (group (and grp-symb (concat (substring (format "Group (%S" grp-symb) 0 27) "): ")))
+         (group (and grp-symb (concat "Group ("
+                                      (truncate-string-to-width (format "%S" grp-symb) 20 nil nil t)
+                                      "): ")))
          (open-popup (buffer-name))
          (dispatch-keys-extended (append (cdr popper-echo-dispatch-keys)
                                      (make-list (max 0 (- (length buried-popups)
