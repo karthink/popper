@@ -462,6 +462,9 @@ a popup buffer to open."
   (when (window-valid-p win)
     (cond
      ((window-parent win)
+      ;; FIXME Possibly a bad idea to mess with atomic windows
+      (when (window-parameter win 'window-atom)
+        (set-window-parameter win 'window-atom nil))
       ;; Kludge. Side windows and regular windows are handled differently. The
       ;; latter is still somewhat broken. This is a bad idea.
       (if (window-parameter win 'window-side)
