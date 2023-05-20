@@ -451,7 +451,7 @@ a popup buffer to open."
                                            nil 'remove 'equal)))
                 (buf (cdr new-popup)))
           (if (not (buffer-live-p buf))
-              (popper-open-latest)
+              (popper-open-latest group)
             (display-buffer buf)
             (with-current-buffer buf
               (run-hooks 'popper-open-popup-hook)))
@@ -533,14 +533,16 @@ windows as it can."
           (popper--open-all)
         (popper-open-latest group)))))
 
-(defun popper-cycle (&optional default-group)
+(defun popper-cycle (&optional num)
   "Cycle visibility of popup windows one at a time.
 
-With a prefix argument DEFAULT-GROUP, cycle through popups
-belonging to the default group."
-  (interactive "P")
+If numeric prefix argument NUM is negative, cycle backwards.
+
+If NUM is 0, cycle through popups belonging to the default
+group."
+  (interactive "p")
   (let* ((group (when (and popper-group-function
-                           (not default-group))
+                           (not (equal num 0)))
                   (funcall popper-group-function))))
     (if (null popper-open-popup-alist)
         (popper-open-latest group)
@@ -550,8 +552,17 @@ belonging to the default group."
         (popper-close-latest)
         (let ((bufs (cdr (assoc group popper-buried-popup-alist))))
           (setf (alist-get group popper-buried-popup-alist nil nil 'equal)
-                (append (cdr bufs) (cons (car bufs) nil))))
+                (if (> num 0)
+                    (append (cdr bufs) (cons (car bufs) nil))
+                  (append (last bufs) (butlast bufs)))))
         (popper-open-latest group)))))
+
+(defun popper-cycle-backwards (&optional num)
+  "Cycle visibility of popup windows backwards, one at a time.
+
+See `popper-cycle' for NUM and details."
+  (interactive "p")
+  (popper-cycle (- num)))
 
 (defun popper-raise-popup (&optional buffer)
   "Raise a popup to regular status.
