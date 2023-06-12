@@ -52,7 +52,7 @@
 ;;
 ;; `popper-mode-line': String or sexp to show in the mode-line of
 ;; popper. Setting this to nil removes the mode-line entirely from
-;; popper.
+;; popper. Set to `unmodified' to not modify the mode-line.
 ;;
 ;; `popper-group-function': Function that returns the context a popup
 ;; should be shown in. The context is a string or symbol used to group
@@ -118,10 +118,11 @@ fewer than 10 lines at time of creation."
 (defcustom popper-mode-line '(:eval (propertize " POP" 'face 'mode-line-emphasis))
   "String or sexp to show in the mode-line of popper.
 
- Can be a quoted list or function. Setting this to nil removes
+ Can be a quoted list, function, or `unmodified'. Setting this to nil removes
 the mode-line entirely from popper."
   :group 'popper
   :type '(choice (const :tag "Off" nil)
+                 (const :tage "Unmodified" unmodified)
                  (string :tag "Literal text")
                  (sexp :tag "General `mode-line-format' entry")))
 
@@ -387,9 +388,10 @@ Each element of the alist is a cons cell of the form (window . buffer)."
                        (append (list newpop)
                                (cl-remove newpop group-popups :key 'cdr))))))
     ;; Mode line update
-    (cl-loop for (_ . buf) in popper-open-popup-alist do
-             (with-current-buffer buf
-               (setq mode-line-format (popper--modified-mode-line))))))
+    (unless (eq popper-mode-line 'unmodified)
+      (cl-loop for (_ . buf) in popper-open-popup-alist do
+               (with-current-buffer buf
+		 (setq mode-line-format (popper--modified-mode-line)))))))
 
 (defun popper--find-buried-popups ()
   "Update the list of currently buried popups.

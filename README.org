@@ -290,7 +290,7 @@ You can combine the hiding feature with predicates for classifying buffers as po
 This assignment will suppress display of the async shell command output buffer, but only when there is no output (stdout). Once it is hidden it will be treated as a popup on par with other entries in =popper-reference-buffers=.
 
 ** Mode line and Echo area customization 
-- To change the modeline string used by Popper (the default is "POP"), customize =popper-mode-line=. You can disable the modeline entirely by setting it to nil.
+- To change the modeline string used by Popper (the default is "POP"), customize =popper-mode-line=. You can disable the modeline entirely by setting it to nil or set to ='unmodified= to disable modeline modifications.
 - You can change the keys used to access popups when using =popper-echo-mode= by customizing the =popper-echo-dispatch-keys= variable. To retain the display while removing the keymap, set this variable to =nil=.
 - You can change the number of minibuffer lines used for display by =popper-echo-mode= by customizing =popper-echo-lines=.
 - If you want to change the buffer names displayed in the echo area in some way (such as to color them by mode or truncate long names), you can customize the variable =popper-echo-transform-function=.
