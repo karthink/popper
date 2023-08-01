@@ -1,6 +1,6 @@
 ;;; popper-echo.el --- Show a popup list in the echo area when cycling them  -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021  Karthik Chikmagalur
+;; Copyright (C) 2023 Free Software Foundation, Inc.
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
 ;; Version: 0.45

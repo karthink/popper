@@ -1,9 +1,9 @@
 ;;; popper.el --- Summon and dismiss buffers as popups -*- lexical-binding: t -*-
 
-;; Copyright (C) 2021  Karthik Chikmagalur
+;; Copyright (C) 2023 Free Software Foundation, Inc.
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
-;; Version: 0.45
+;; Version: 0.4.5
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
@@ -72,8 +72,9 @@
 
 ;;; Code:
 
-(require 'cl-lib)
-(require 'subr-x)
+(eval-when-compile
+  (require 'cl-lib)
+  (require 'subr-x))
 
 (declare-function project-root "project")
 (declare-function project-current "project")
@@ -513,9 +514,9 @@ the screen by `display-buffer' will not all be displayed."
 (defun popper-toggle-latest (&optional arg)
   "Toggle visibility of the last opened popup window.
 
-With prefix ARG \\[universal-argument], toggle visibility of the next popup windows
-while keeping the current one (FIXME: This behavior can be
-inconsistent.)
+With prefix ARG \\[universal-argument], toggle visibility of the
+next popup windows while keeping the current one (FIXME: This
+behavior can be inconsistent.)
 
 With a double prefix ARG \\[universal-argument]
 \\[universal-argument], toggle all popup-windows. Note that only
@@ -619,15 +620,11 @@ If BUFFER is not specified act on the current buffer instead."
       (seq-some (lambda (pred) (funcall pred buf)) popper--suppressed-predicates)))
 
 (defun popper--suppress-popups ()
-  "TODO.
-
-   Suppress open popups in the user-defined
+  "Suppress open popups in the user-defined
   `popper-suppress-buffers' list. This should run after
   `popper--update-popups' in `window-configuration-change-hook'."
-
   ;; Check if popup-status for any open popup is 'suppressed. If yes, change
   ;; its popup-status to 'popup and hide it.
-
   (let ((configuration-changed-p))
     (cl-loop for (win . buf) in popper-open-popup-alist do
              (when (eq (buffer-local-value 'popper-popup-status buf) 'suppressed)
@@ -644,36 +641,31 @@ If BUFFER is not specified act on the current buffer instead."
     (when configuration-changed-p
       (popper--update-popups))))
 
-(declare-function popper--classify-type "popper")
-(declare-function popper--insert-type "popper")
-
 (defun popper--set-reference-vars ()
   "Unpack `popper-reference-buffers' to set popper--reference- variables."
-  (defun popper--classify-type (elm)
-    (pcase elm
-      ((pred stringp) 'name)
-      ((and (pred symbolp)
-            (guard (or (memq 'derived-mode-parent (symbol-plist elm))
-                       (memq 'mode-class (symbol-plist elm))
-                       (string= "-mode" (substring (symbol-name elm) -5)))))
-       'mode)
-      ((pred functionp) 'pred)
-      ((pred consp) 'cons)))
-
-  (defun popper--insert-type (elm)
-    (pcase (popper--classify-type elm)
-      ('name (cl-pushnew elm popper--reference-names))
-      ('mode (cl-pushnew elm popper--reference-modes))
-      ('pred (cl-pushnew elm popper--reference-predicates))
-      ('cons (when (eq (cdr elm) 'hide)
-               (pcase (popper--classify-type (car elm))
-                 ('name (cl-pushnew (car elm) popper--suppressed-names))
-                 ('mode (cl-pushnew (car elm) popper--suppressed-modes))
-                 ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
-             (popper--insert-type (car elm)))))
-
-  (dolist (entry popper-reference-buffers nil)
-    (popper--insert-type entry)))
+  (cl-labels ((popper--classify-type
+               (elm) (pcase elm
+                       ((pred stringp) 'name)
+                       ((and (pred symbolp)
+                             (guard (or (memq 'derived-mode-parent (symbol-plist elm))
+                                        (memq 'mode-class (symbol-plist elm))
+                                        (string= "-mode" (substring (symbol-name elm) -5)))))
+                        'mode)
+                       ((pred functionp) 'pred)
+                       ((pred consp) 'cons)))
+              (popper--insert-type
+               (elm) (pcase (popper--classify-type elm)
+                       ('name (cl-pushnew elm popper--reference-names))
+                       ('mode (cl-pushnew elm popper--reference-modes))
+                       ('pred (cl-pushnew elm popper--reference-predicates))
+                       ('cons (when (eq (cdr elm) 'hide)
+                                (pcase (popper--classify-type (car elm))
+                                  ('name (cl-pushnew (car elm) popper--suppressed-names))
+                                  ('mode (cl-pushnew (car elm) popper--suppressed-modes))
+                                  ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
+                              (popper--insert-type (car elm))))))
+    (dolist (entry popper-reference-buffers nil)
+    (popper--insert-type entry))))
 
 ;;;###autoload
 (define-minor-mode popper-mode
@@ -682,7 +674,7 @@ windows as popups, a class of window that can be summoned or
 dismissed with a command. See the customization options for
 details on how to designate buffer types as popups."
   :global t
-  :version "0.40"
+  :version "0.4.5"
   :lighter ""
   :group 'popper
   :keymap (let ((map (make-sparse-keymap))) map)
