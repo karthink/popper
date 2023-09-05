@@ -26,8 +26,8 @@
 ;;; Commentary:
 
 ;; Popper-echo is a minor-mode to display a list of popup names in the echo area
-;; when toggling or cycling popups. These popups can be accessed directly using
-;; dispatch keybinds. See Popper for how to classify a buffer as a popup.
+;; when toggling or cycling popups.  These popups can be accessed directly using
+;; dispatch keybinds.  See Popper for how to classify a buffer as a popup.
 
 ;; COMMANDS:
 
@@ -93,7 +93,7 @@ NOTE: This feature is experimental."
 The first element is bound to the currently open popup.
 
 Each entry in the list can be a character or a string suitable
-for the kbd macro. These keys are available when using
+for the kbd macro.  These keys are available when using
 popper-echo-mode.
 
 Examples:
@@ -126,20 +126,20 @@ off."
   "Show popup list in the echo area when cycling popups."
   (let* ((message-log-max nil)
          (grp-symb (when popper-group-function
-                       (funcall popper-group-function)))
+                     (funcall popper-group-function)))
          (buried-popups (thread-last (alist-get grp-symb popper-buried-popup-alist nil nil 'equal)
-                          (mapcar #'cdr)
-                          (cl-remove-if-not #'buffer-live-p)
-                          (mapcar #'buffer-name)
-                          (delete-dups)))
+                                     (mapcar #'cdr)
+                                     (cl-remove-if-not #'buffer-live-p)
+                                     (mapcar #'buffer-name)
+                                     (delete-dups)))
          (group (and grp-symb (concat "Group ("
                                       (truncate-string-to-width (format "%S" grp-symb) 20 nil nil t)
                                       "): ")))
          (open-popup (buffer-name))
          (dispatch-keys-extended (append (cdr popper-echo-dispatch-keys)
-                                     (make-list (max 0 (- (length buried-popups)
-                                                          (1- (length popper-echo-dispatch-keys))))
-                                                nil)))
+                                         (make-list (max 0 (- (length buried-popups)
+                                                              (1- (length popper-echo-dispatch-keys))))
+                                                    nil)))
          (popup-strings
           (cl-reduce #'concat
                      (cons
@@ -181,28 +181,28 @@ off."
                                              (make-vector 1 keybind))
                                             ((stringp keybind)
                                              (kbd keybind)))
-                             (popper-echo--dispatch-toggle i (cons open-popup
-                                                                   buried-popups)))
+                                       (popper-echo--dispatch-toggle i (cons open-popup
+                                                                             buried-popups)))
                            (when popper-echo-dispatch-actions
                              (define-key map
-                               (kbd
-                                (concat "k " (cond
-                                              ((characterp keybind)
-                                               (char-to-string keybind))
-                                              ((stringp keybind)
-                                               keybind))))
-                               (popper-echo--dispatch-kill i (cons open-popup
-                                                                   buried-popups)))
+                                         (kbd
+                                          (concat "k " (cond
+                                                        ((characterp keybind)
+                                                         (char-to-string keybind))
+                                                        ((stringp keybind)
+                                                         keybind))))
+                                         (popper-echo--dispatch-kill i (cons open-popup
+                                                                             buried-popups)))
                              
                              (define-key map
-                               (kbd
-                                (concat "^ " (cond
-                                              ((characterp keybind)
-                                               (char-to-string keybind))
-                                              ((stringp keybind)
-                                               keybind))))
-                               (popper-echo--dispatch-raise i (cons open-popup
-                                                                    buried-popups))))
+                                         (kbd
+                                          (concat "^ " (cond
+                                                        ((characterp keybind)
+                                                         (char-to-string keybind))
+                                                        ((stringp keybind)
+                                                         keybind))))
+                                         (popper-echo--dispatch-raise i (cons open-popup
+                                                                              buried-popups))))
                            (setq i (1+ i)))))))
 
 
@@ -245,10 +245,11 @@ quickly."
 
 ;;;###autoload
 (define-minor-mode popper-echo-mode
-  "Show popup names in cycling order in the echo area when
-  performing an action that involves showing a popup. These
-  popups can be accessed directly or acted upon by using quick
-  keys (see `popper-echo-dispatch-keys').
+  "Toggle Popper Echo mode.
+Show popup names in cycling order in the echo area when
+performing an action that involves showing a popup.  These popups
+can be accessed directly or acted upon by using quick keys (see
+`popper-echo-dispatch-keys').
 
 To define buffers as popups and customize popup display, see
 `popper-mode'."
