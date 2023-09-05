@@ -3,7 +3,7 @@
 ;; Copyright (C) 2023 Free Software Foundation, Inc.
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
-;; Version: 0.4.5
+;; Version: 0.4.6
 ;; Package-Requires: ((emacs "26.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
@@ -39,7 +39,7 @@
 ;;;; Commands:
 
 ;; `popper-mode': Turn on popup management
-;; `popper-toggle-latest': Toggle latest popup
+;; `popper-toggle': Toggle latest popup
 ;; `popper-cycle': Cycle through all popups, or close all open popups
 ;; `popper-toggle-type': Turn a regular window into a popup or vice-versa
 ;; `popper-kill-latest-popup': Kill latest open popup
@@ -291,9 +291,9 @@ This is intended to be used in `display-buffer-alist'."
        (with-current-buffer buffer
          (eq popper-popup-status 'user-popup)))
       ('t (with-current-buffer buffer
-           (or (memq popper-popup-status '(popup user-popup))
-               (unless (eq popper-popup-status 'raised)
-                 (popper-popup-p buffer))))))))
+            (or (memq popper-popup-status '(popup user-popup))
+                (unless (eq popper-popup-status 'raised)
+                  (popper-popup-p buffer))))))))
 
 (defun popper-group-by-directory ()
   "Return an identifier (default directory) to group popups.
@@ -443,10 +443,10 @@ Optional argument GROUP is called with no arguments to select
 a popup buffer to open."
   (unless popper-mode (user-error "Popper-mode not active!"))
   (let* ((identifier (when popper-group-function group))
-        (no-popup-msg (format "No buried popups for group %s"
-                                 (if (symbolp identifier)
-                                     (symbol-name identifier)
-                                   identifier))))
+         (no-popup-msg (format "No buried popups for group %s"
+                               (if (symbolp identifier)
+                                   (symbol-name identifier)
+                                 identifier))))
     (if (null (alist-get identifier popper-buried-popup-alist
                          nil 'remove 'equal))
         (message (if identifier no-popup-msg "No buried popups"))
@@ -513,7 +513,7 @@ the screen by `display-buffer' will not all be displayed."
     (while (alist-get group popper-buried-popup-alist nil nil 'equal)
       (popper-open-latest group))))
 
-(defun popper-toggle-latest (&optional arg)
+(defun popper-toggle (&optional arg)
   "Toggle visibility of the last opened popup window.
 
 With prefix ARG \\[universal-argument], toggle visibility of the
@@ -535,6 +535,9 @@ windows as it can."
       (if (equal arg 16)
           (popper--open-all)
         (popper-open-latest group)))))
+
+(define-obsolete-function-alias
+  'popper-toggle-latest #'popper-toggle "0.4.6")
 
 (defun popper-cycle (&optional num)
   "Cycle visibility of popup windows one at a time.
@@ -616,8 +619,8 @@ If BUFFER is not specified act on the current buffer instead."
 (defun popper--suppress-p (buf)
   "Predicate to check if popup-buffer BUF needs to be suppressed."
   (or (seq-some (lambda (buf-regexp)
-               (string-match-p buf-regexp (buffer-name buf)))
-             popper--suppressed-names)
+                  (string-match-p buf-regexp (buffer-name buf)))
+                popper--suppressed-names)
       (member (buffer-local-value 'major-mode buf) popper--suppressed-modes)
       (seq-some (lambda (pred) (funcall pred buf)) popper--suppressed-predicates)))
 
@@ -647,27 +650,27 @@ This should run after `popper--update-popups' in
   "Unpack `popper-reference-buffers' to set popper--reference- variables."
   (cl-labels ((popper--classify-type
                 (elm) (pcase-exhaustive elm
-                       ((pred stringp) 'name)
-                       ((and (pred symbolp)
-                             (guard (or (memq 'derived-mode-parent (symbol-plist elm))
-                                        (memq 'mode-class (symbol-plist elm))
-                                        (string= "-mode" (substring (symbol-name elm) -5)))))
-                        'mode)
-                       ((pred functionp) 'pred)
-                       ((pred consp) 'cons)))
+                        ((pred stringp) 'name)
+                        ((and (pred symbolp)
+                              (guard (or (memq 'derived-mode-parent (symbol-plist elm))
+                                         (memq 'mode-class (symbol-plist elm))
+                                         (string= "-mode" (substring (symbol-name elm) -5)))))
+                         'mode)
+                        ((pred functionp) 'pred)
+                        ((pred consp) 'cons)))
               (popper--insert-type
                 (elm) (pcase-exhaustive (popper--classify-type elm)
-                       ('name (cl-pushnew elm popper--reference-names))
-                       ('mode (cl-pushnew elm popper--reference-modes))
-                       ('pred (cl-pushnew elm popper--reference-predicates))
-                       ('cons (when (eq (cdr elm) 'hide)
-                                (pcase-exhaustive (popper--classify-type (car elm))
-                                  ('name (cl-pushnew (car elm) popper--suppressed-names))
-                                  ('mode (cl-pushnew (car elm) popper--suppressed-modes))
-                                  ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
-                              (popper--insert-type (car elm))))))
+                        ('name (cl-pushnew elm popper--reference-names))
+                        ('mode (cl-pushnew elm popper--reference-modes))
+                        ('pred (cl-pushnew elm popper--reference-predicates))
+                        ('cons (when (eq (cdr elm) 'hide)
+                                 (pcase-exhaustive (popper--classify-type (car elm))
+                                   ('name (cl-pushnew (car elm) popper--suppressed-names))
+                                   ('mode (cl-pushnew (car elm) popper--suppressed-modes))
+                                   ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
+                               (popper--insert-type (car elm))))))
     (dolist (entry popper-reference-buffers nil)
-    (popper--insert-type entry))))
+      (popper--insert-type entry))))
 
 ;;;###autoload
 (define-minor-mode popper-mode
