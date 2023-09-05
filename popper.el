@@ -130,7 +130,7 @@ the mode-line entirely from popup buffers."
 
 (defcustom popper-mode-line-position 0
   "Position in mode-line to place `popper-mode-line'."
-  :type 'natnum)
+  :type 'integer)
 
 (defcustom popper-display-control t
   "Whether popper should control the placement of popup windows.
