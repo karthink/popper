@@ -26,55 +26,56 @@
 ;;; Commentary:
 
 ;; Popper is a minor-mode to tame the flood of ephemeral windows Emacs
-;; produces, while still keeping them within arm's reach. Designate any
-;; buffer to "popup" status, and it will stay out of your way. Disimss
-;; or summon it easily with one key. Cycle through all your "popups" or
-;; just the ones relevant to your current buffer. Useful for many
+;; produces, while still keeping them within arm's reach.  Designate any
+;; buffer to "popup" status, and it will stay out of your way.  Disimss
+;; or summon it easily with one key.  Cycle through all your "popups" or
+;; just the ones relevant to your current buffer.  Useful for many
 ;; things, including toggling display of REPLs, documentation,
 ;; compilation or shell output, etc.
 ;;
 ;; For a demo describing usage and customization see
 ;; https://www.youtube.com/watch?v=E-xUNlZi3rI
-;;
-;; COMMANDS:
-;;
-;; popper-mode          : Turn on popup management
-;; popper-toggle-latest : Toggle latest popup
-;; popper-cycle         : Cycle through all popups, or close all open popups
-;; popper-toggle-type   : Turn a regular window into a popup or vice-versa
-;; popper-kill-latest-popup : Kill latest open popup
-;;
-;; CUSTOMIZATION:
-;;
+
+;;;; Commands:
+
+;; `popper-mode': Turn on popup management
+;; `popper-toggle-latest': Toggle latest popup
+;; `popper-cycle': Cycle through all popups, or close all open popups
+;; `popper-toggle-type': Turn a regular window into a popup or vice-versa
+;; `popper-kill-latest-popup': Kill latest open popup
+
+;;;; Customization:
+
 ;; `popper-reference-buffers': A list of major modes or regexps whose
 ;; corresponding buffer major-modes or regexps (respectively) should be
 ;; treated as popups.
 ;;
 ;; `popper-mode-line': String or sexp to show in the mode-line of
-;; popper. Setting this to nil removes the mode-line entirely from
-;; popper.
+;; popper.  Setting this to nil removes the mode-line entirely from
+;; popup buffers.
 ;;
 ;; `popper-group-function': Function that returns the context a popup
-;; should be shown in. The context is a string or symbol used to group
+;; should be shown in.  The context is a string or symbol used to group
 ;; together a set of buffers and their associated popups, such as the
-;; project root. Customize for available options.
+;; project root.  Customize for available options.
 ;;
 ;; `popper-display-control': This package summons windows defined by the
-;; user as popups by simply calling `display-buffer'. By default,
-;; it will display your popups in a non-obtrusive way. If you want
+;; user as popups by simply calling `display-buffer'.  By default,
+;; it will display your popups in a non-obtrusive way.  If you want
 ;; Popper to display popups according to window rules you specify in
 ;; `display-buffer-alist' (or through a package like Shackle), set this
 ;; variable to nil.
 ;;
 ;; There are other customization options, such as the ability to suppress
-;; certain popups and keep them from showing. Please customize the popper group
+;; certain popups and keep them from showing.  Please customize the popper group
 ;; for details.
 
 ;;; Code:
 
 (eval-when-compile
-  (require 'cl-lib)
   (require 'subr-x))
+(require 'cl-lib)
+(require 'seq)
 
 (declare-function project-root "project")
 (declare-function project-current "project")
@@ -84,9 +85,11 @@
 (defvar popper-mode)
 
 (defgroup popper nil
-  "Provide functions for easy access to popup windows"
+  "Provide functions for easy access to popup windows."
   :group 'convenience)
 
+;; If you are interested in depending on Compat, you could use
+;; `buffer-match-p' here.
 (defcustom popper-reference-buffers '("\\*Messages\\*$")
   "List of buffers to treat as popups.
 Each entry in the list can be a regexp (string) to match buffer
@@ -119,25 +122,22 @@ fewer than 10 lines at time of creation."
 (defcustom popper-mode-line '(:eval (propertize " POP" 'face 'mode-line-emphasis))
   "String or sexp to show in the mode-line of popper.
 
- Can be a quoted list or function. Setting this to nil removes
-the mode-line entirely from popper."
-  :group 'popper
+ Can be a quoted list or function.  Setting this to nil removes
+the mode-line entirely from popup buffers."
   :type '(choice (const :tag "Off" nil)
                  (string :tag "Literal text")
                  (sexp :tag "General `mode-line-format' entry")))
 
 (defcustom popper-mode-line-position 0
   "Position in mode-line to place `popper-mode-line'."
-  :type 'integer
-  :group 'popper)
+  :type 'natnum)
 
 (defcustom popper-display-control t
   "Whether popper should control the placement of popup windows.
 Choices are:
-\\='user: The default. Only control placement of explicitly marked popups.
+\\='user: The default.  Only control placement of explicitly marked popups.
  nil : Do not control popup placement.
  t   : Control placement of all popups."
-  :group 'popper
   :type '(choice (const :tag "Explicitly set popups only" user)
                  (const :tag "All popups" t)
                  (const :tag "Never" nil)))
@@ -149,9 +149,8 @@ Choices are:
 `popper-display-control' is non-nil.
 
 This function accepts two arguments, a buffer and (optional) an
-action alist and displays the buffer. See (info \"(elisp) Buffer
+action alist and displays the buffer.  See (info \"(elisp) Buffer
 Display Action Alists\") for details on the alist."
-  :group 'popper
   :type 'function)
 
 (defcustom popper-group-function nil
@@ -160,7 +159,7 @@ Display Action Alists\") for details on the alist."
 When set to nil popups are not grouped by context.
 
 This function is called with no arguments and should return a
-string or symbol identifying a popup buffer's group. This
+string or symbol identifying a popup buffer's group.  This
 identifier is used to associate popups with regular buffers (such
 as by project, directory, or `major-mode') so that popup-cycling
 from a regular buffer is restricted to its associated group.
@@ -171,7 +170,6 @@ Built-in choices include
 `popper-group-by-project': Return project root using project.el.
 `popper-group-by-projectile': Return project root using projectile.
 `popper-group-by-perspective': Return perspective name."
-  :group 'popper
   :type '(choice
           (const :tag "Don't group popups" nil)
           (const :tag "Group by project (project.el)" popper-group-by-project)
@@ -185,7 +183,7 @@ Built-in choices include
 
 This can be a number representing the height in chars or a
 function that optionally takes one argument (the popup window)
-and returns the height in chars. This option is ignored when
+and returns the height in chars.  This option is ignored when
 `popper-display-control' is set to nil.
 
 Examples:
@@ -199,7 +197,6 @@ the frame height.
   (fit-window-to-buffer
     win
     (floor (frame-height) 3)))"
-  :group 'popper
   :type '(choice (integer :tag "Height in chars")
                  (function :tag "Height function")))
 
@@ -208,8 +205,7 @@ the frame height.
 
 Each function in the hook is called with the opened popup-buffer
 as current."
-  :type 'hook
-  :group 'popper)
+  :type 'hook)
 
 (defvar popper--reference-names nil
   "List of buffer names whose windows are treated as popups.")
@@ -243,7 +239,7 @@ grouped by the predicate `popper-group-function'.")
 
 (defvar-local popper-popup-status nil
   "Identifies a buffer as a popup by its buffer-local value.
-  Valid values are \\='popup, \\='raised, \\='user-popup or nil.
+Valid values are \\='popup, \\='raised, \\='user-popup or nil.
 
 \\='popup     : This is a popup buffer specified in `popper-reference-buffers'.
 \\='raised    : This is a POPUP buffer raised to regular status by the user.
@@ -257,15 +253,21 @@ grouped by the predicate `popper-group-function'.")
    (floor (frame-height) 6)))
 
 (defun popper-select-popup-at-bottom (buffer &optional alist)
-  "Display and switch to popup-buffer BUFFER at the bottom of the screen."
+  "Display and switch to popup-buffer BUFFER at the bottom of the screen.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
   (let ((window (popper-display-popup-at-bottom buffer alist)))
     (select-window window)))
 
 (defun popper-display-popup-at-bottom (buffer &optional alist)
-  "Display popup-buffer BUFFER at the bottom of the screen."
+  "Display popup-buffer BUFFER at the bottom of the screen.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
   (display-buffer-in-side-window
    buffer
-   (append alist 
+   (append alist
            `((window-height . ,popper-window-height)
              (side . bottom)
              (slot . 1)))))
@@ -306,9 +308,9 @@ directory as a fall back."
 (defun popper-group-by-project ()
   "Return an identifier (project root) to group popups."
   (unless (fboundp 'project-root)
-    (user-error "Cannot find project directory to group popups.
-  Please install `project' or customize
-  `popper-group-function'"))
+    (user-error "Cannot find project directory to group popups. \
+Please install `project' or customize \
+`popper-group-function'"))
   (when-let ((project (project-current)))
     (project-root project)))
 
@@ -317,8 +319,8 @@ directory as a fall back."
 
 This returns the project root found using the projectile package."
   (unless (fboundp 'projectile-project-root)
-    (user-error "Cannot find project directory to group popups.
-  Please install `projectile' or customize
+    (user-error "Cannot find project directory to group popups. \
+Please install `projectile' or customize
   `popper-group-function'"))
   (projectile-project-root))
 
@@ -327,9 +329,9 @@ This returns the project root found using the projectile package."
 
 This returns the name of the perspective."
   (unless (fboundp 'persp-current-name)
-    (user-error "Cannot find perspective name to group popups.
-  Please install `perspective' or customize
-  `popper-group-function'"))
+    (user-error "Cannot find perspective name to group popups. \
+Please install `perspective' or customize \
+`popper-group-function'"))
   (persp-current-name))
 
 (defun popper--find-popups (test-buffer-list)
@@ -519,7 +521,7 @@ next popup windows while keeping the current one (FIXME: This
 behavior can be inconsistent.)
 
 With a double prefix ARG \\[universal-argument]
-\\[universal-argument], toggle all popup-windows. Note that only
+\\[universal-argument], toggle all popup-windows.  Note that only
 one buffer can be show in one slot, so it will display as many
 windows as it can."
   (interactive "p")
@@ -620,9 +622,9 @@ If BUFFER is not specified act on the current buffer instead."
       (seq-some (lambda (pred) (funcall pred buf)) popper--suppressed-predicates)))
 
 (defun popper--suppress-popups ()
-  "Suppress open popups in the user-defined
-  `popper-suppress-buffers' list. This should run after
-  `popper--update-popups' in `window-configuration-change-hook'."
+  "Suppress open popups in the user-defined `popper-suppress-buffers' list.
+This should run after `popper--update-popups' in
+`window-configuration-change-hook'."
   ;; Check if popup-status for any open popup is 'suppressed. If yes, change
   ;; its popup-status to 'popup and hide it.
   (let ((configuration-changed-p))
@@ -644,7 +646,7 @@ If BUFFER is not specified act on the current buffer instead."
 (defun popper--set-reference-vars ()
   "Unpack `popper-reference-buffers' to set popper--reference- variables."
   (cl-labels ((popper--classify-type
-               (elm) (pcase elm
+                (elm) (pcase-exhaustive elm
                        ((pred stringp) 'name)
                        ((and (pred symbolp)
                              (guard (or (memq 'derived-mode-parent (symbol-plist elm))
@@ -654,12 +656,12 @@ If BUFFER is not specified act on the current buffer instead."
                        ((pred functionp) 'pred)
                        ((pred consp) 'cons)))
               (popper--insert-type
-               (elm) (pcase (popper--classify-type elm)
+                (elm) (pcase-exhaustive (popper--classify-type elm)
                        ('name (cl-pushnew elm popper--reference-names))
                        ('mode (cl-pushnew elm popper--reference-modes))
                        ('pred (cl-pushnew elm popper--reference-predicates))
                        ('cons (when (eq (cdr elm) 'hide)
-                                (pcase (popper--classify-type (car elm))
+                                (pcase-exhaustive (popper--classify-type (car elm))
                                   ('name (cl-pushnew (car elm) popper--suppressed-names))
                                   ('mode (cl-pushnew (car elm) popper--suppressed-modes))
                                   ('pred (cl-pushnew (car elm) popper--suppressed-predicates))))
@@ -669,10 +671,11 @@ If BUFFER is not specified act on the current buffer instead."
 
 ;;;###autoload
 (define-minor-mode popper-mode
-  "Toggle Popper mode. When enabled, treat certain buffer
-windows as popups, a class of window that can be summoned or
-dismissed with a command. See the customization options for
-details on how to designate buffer types as popups."
+  "Toggle Popper mode.
+When enabled, treat certain buffer windows as popups, a class of
+window that can be summoned or dismissed with a command.  See the
+customization options for details on how to designate buffer
+types as popups."
   :global t
   :version "0.4.5"
   :lighter ""
