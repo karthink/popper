@@ -115,9 +115,19 @@ Output*, and all help and compilation buffers.
 
 will match against the Messages buffer, all help buffers and any
 buffer with major-mode derived from fundamental mode that has
-fewer than 10 lines at time of creation."
-  :type '(restricted-sexp :match-alternatives (stringp symbolp functionp consp))
-  :group 'popper)
+fewer than 10 lines at time of creation.
+
+It can also be a cons cell whose car is any of the above and
+whose cdr is the symbol `hide', in which case matching popup
+buffers will be suppressed when they are first created."
+  :type '(repeat
+          (choice (string :tag "Buffer name regexp")
+		  (symbol :tag "Major mode")
+		  (function :tag "Predicate Function")
+                  (cons (choice (regexp :tag "Buffer name regexp")
+                                (symbol :tag "Major mode")
+                                (function :tag "Predicate function"))
+                        (const :tag "Hide" hide)))))
 
 (defcustom popper-mode-line '(:eval (propertize " POP" 'face 'mode-line-emphasis))
   "String or sexp to show in the mode-line of popper.
