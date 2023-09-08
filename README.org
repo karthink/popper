@@ -1,11 +1,9 @@
-#+title: Popper.el
+#+title: Popper: Popup Buffers for Emacs
 
-:BADGE:
-[[https://melpa.org/#/popper][file:https://melpa.org/packages/popper-badge.svg]]
-:END:
-
-- /New in v0.45: popper-echo-mode for displaying popup names in the echo area and dispatching on them/
-- /New in v0.40: Auto-hide or suppress popup buffers, assign popups by predicate/
+#+html: <a href="https://elpa.gnu.org/packages/popper.html"><img alt="GNU ELPA" src="https://elpa.gnu.org/packages/popper.svg"/></a>
+#+html: <a href="https://elpa.gnu.org/devel/popper.html"><img alt="GNU-devel ELPA" src="https://elpa.gnu.org/devel/popper.svg"/></a>
+#+html: <a href="https://melpa.org/#/popper"><img alt="MELPA" src="https://melpa.org/packages/popper-badge.svg"/></a>
+#+html: <a href="https://stable.melpa.org/#/popper"><img alt="MELPA Stable" src="https://stable.melpa.org/packages/popper-badge.svg"/></a>
 
 Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
 while still keeping them within arm's reach.
