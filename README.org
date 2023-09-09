@@ -87,7 +87,7 @@ To automatically designate buffers as popups, see the customization section. Add
 If you want the echo-area hints, turn on =popper-echo-mode=.
 
 * Setup 
-=popper= is available in MELPA, so you can install it with =M-x package-install RET popper RET= after adding MELPA to your package archives list.
+=popper= is available on GNU ELPA, so you can install it with =M-x package-install RET popper RET=.
 
 ** With =use-package=
 #+BEGIN_SRC emacs-lisp
