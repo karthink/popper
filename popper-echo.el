@@ -56,12 +56,13 @@
 
 This is called on buffer-names displayed by `popper-echo'.
 
-This function should accept a
-  string (the buffer name) and return a transformed string."
-  :type 'function
+This function should accept a string (the buffer name) and return
+a transformed string."
+  :type '(choice (const :tag "Don't transform buffer-names" nil)
+          function)
   :group 'popper)
 
-(defcustom popper-echo-lines 2
+ (defcustom popper-echo-lines 2
   "Number of minibuffer lines used to show popup buffer names by `popper-echo'.
 
 This has no effect when popper-echo-mode is turned off."
@@ -102,8 +103,9 @@ Examples:
 
 This variable has no effect when popper-echo-mode is turned
 off."
-  :type '(group character string)
+  :type '(repeat (choice character string))
   :group 'popper)
+
 
 (defface popper-echo-area-buried
   '((t :inherit shadow))
