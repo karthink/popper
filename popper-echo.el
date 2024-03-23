@@ -123,92 +123,9 @@ off."
   "Echo area face for popper dispatch key hints."
   :group 'popper)
 
-;; Notify in echo area:
-(defun popper-echo ()
-  "Show popup list in the echo area when cycling popups."
-  (let* ((message-log-max nil)
-         (grp-symb (when popper-group-function
-                     (funcall popper-group-function)))
-         (buried-popups (thread-last (alist-get grp-symb popper-buried-popup-alist nil nil 'equal)
-                                     (mapcar #'cdr)
-                                     (cl-remove-if-not #'buffer-live-p)
-                                     (mapcar #'buffer-name)
-                                     (delete-dups)))
-         (group (and grp-symb (concat "Group ("
-                                      (truncate-string-to-width (format "%S" grp-symb) 20 nil nil t)
-                                      "): ")))
-         (open-popup (buffer-name))
-         (dispatch-keys-extended (append (cdr popper-echo-dispatch-keys)
-                                         (make-list (max 0 (- (length buried-popups)
-                                                              (1- (length popper-echo-dispatch-keys))))
-                                                    nil)))
-         (popup-strings
-          (cl-reduce #'concat
-                     (cons
-                      (if-let ((transform popper-echo-transform-function))
-                          (funcall transform open-popup)
-                        (propertize open-popup 'face 'popper-echo-area))
-                      (cl-mapcar (lambda (key buf)
-                                   (concat
-                                    (propertize ", " 'face 'popper-echo-area-buried)
-                                    (propertize "[" 'face 'popper-echo-area-buried)
-                                    (and key
-                                         (concat
-                                          (propertize (if (characterp key)
-                                                          (char-to-string key)
-                                                        key)
-                                                      'face 'popper-echo-dispatch-hint)
-                                          (propertize ":" 'face 'popper-echo-area-buried)))
-                                    (if-let ((transform popper-echo-transform-function))
-                                        (funcall transform buf)
-                                      (concat
-                                       (propertize buf 'face 'popper-echo-area-buried)))
-                                    (propertize "]" 'face 'popper-echo-area-buried)))
-                                 dispatch-keys-extended
-                                 buried-popups)))))
-    (let* ((max-width (- (* popper-echo-lines (frame-width)) (if group (length group) 11)))
-           (plen (length popup-strings))
-           (space-p (> max-width plen)))
-      (message "%s"
-               (concat
-                (or group "Popups: ")
-                (substring popup-strings 0 (if space-p plen max-width))
-                (unless space-p
-                  (propertize "..." 'face 'popper-echo-area-buried)))))
-    (set-transient-map (let ((map (make-sparse-keymap))
-                             (i 0))
-                         (dolist (keybind popper-echo-dispatch-keys map)
-                           (define-key map (cond
-                                            ((characterp keybind)
-                                             (make-vector 1 keybind))
-                                            ((stringp keybind)
-                                             (kbd keybind)))
-                                       (popper-echo--dispatch-toggle i (cons open-popup
-                                                                             buried-popups)))
-                           (when popper-echo-dispatch-actions
-                             (define-key map
-                                         (kbd
-                                          (concat "k " (cond
-                                                        ((characterp keybind)
-                                                         (char-to-string keybind))
-                                                        ((stringp keybind)
-                                                         keybind))))
-                                         (popper-echo--dispatch-kill i (cons open-popup
-                                                                             buried-popups)))
-                             
-                             (define-key map
-                                         (kbd
-                                          (concat "^ " (cond
-                                                        ((characterp keybind)
-                                                         (char-to-string keybind))
-                                                        ((stringp keybind)
-                                                         keybind))))
-                                         (popper-echo--dispatch-raise i (cons open-popup
-                                                                              buried-popups))))
-                           (setq i (1+ i)))))))
+;;; Utility functions
 
-
-(defun popper-echo--dispatch-toggle (i buf-list)
+(defun popper-echo--dispatch-toggle (i buf-list repeat)
   "Return a function to switch to buffer I in list BUF-LIST.
 
 This is used to create functions for switching between popups
@@ -218,10 +135,11 @@ quickly."
     (when-let ((buf (nth i buf-list)))
       (unless arg (popper-close-latest))
       (display-buffer buf)
-      (popper--update-popups))
-    (when popper-echo-dispatch-persist (popper-echo))))
+      (popper--update-popups)
+      (when popper-echo-dispatch-persist
+        (with-current-buffer buf (funcall repeat))))))
 
-(defun popper-echo--dispatch-kill (i buf-list)
+(defun popper-echo--dispatch-kill (i buf-list repeat)
   "Return a function to Kill buffer I in list BUF-LIST."
   (lambda ()
     (interactive)
@@ -232,10 +150,13 @@ quickly."
     (popper--update-popups)
     (when (and popper-echo-dispatch-persist
                popper-open-popup-alist)
-      (popper-echo))))
+      (with-current-buffer (cdar popper-open-popup-alist)
+        (funcall repeat)))))
 
-(defun popper-echo--dispatch-raise (i buf-list)
-  "Return a function to Kill buffer I in list BUF-LIST."
+(defun popper-echo--dispatch-raise (i buf-list repeat)
+  "Return a function to raise buffer I in list BUF-LIST.
+
+Raising converts if from a popup to a regular buffer."
   (lambda ()
     (interactive)
     (let* ((buf (nth i buf-list)))
@@ -243,7 +164,86 @@ quickly."
     (popper--update-popups)
     (when (and popper-echo-dispatch-persist
                popper-open-popup-alist)
-      (popper-echo))))
+      (with-current-buffer (cdar popper-open-popup-alist)
+        (funcall repeat)))))
+
+(defun popper-echo--popup-info ()
+  "Return the popper group and list of buried popup buffers."
+  (let ((grp-symb (when popper-group-function
+                    (funcall popper-group-function))))
+    (cons grp-symb
+          (thread-last (alist-get grp-symb popper-buried-popup-alist nil nil 'equal)
+                       (mapcar #'cdr)
+                       (cl-remove-if-not #'buffer-live-p)
+                       (delete-dups)))))
+
+(defun popper-echo--activate-keymap (buffers repeat)
+  "Activate a transient keymap to switch to or manipulate BUFFERS.
+
+Each command in the keymap calls the function REPEAT afterwards."
+  (set-transient-map
+   (cl-loop with map = (make-sparse-keymap)
+            for i upto 9
+            for keybind in popper-echo-dispatch-keys
+            for rawkey = (cond ((characterp keybind) (char-to-string keybind))
+                               (t keybind))
+            do
+            (define-key map (kbd rawkey) (popper-echo--dispatch-toggle i buffers repeat))
+            (define-key map (kbd (concat "k " rawkey))
+                        (popper-echo--dispatch-kill i buffers repeat))
+            (define-key map (kbd (concat "^ " rawkey))
+                        (popper-echo--dispatch-raise i buffers repeat))
+            finally return map)))
+
+;;; Notify in echo area:
+(defun popper-echo ()
+  "Show popup list in the echo area when cycling popups."
+  (pcase-let*
+      ((message-log-max nil)
+       (`(,grp-symb . ,buried-popups) (popper-echo--popup-info))
+       (buried-popups (mapcar #'buffer-name buried-popups))
+       (group (and grp-symb
+                   (concat "Group (" (truncate-string-to-width (format "%S" grp-symb) 20 nil nil t) "): ")))
+       (open-popup (buffer-name))
+       (dispatch-keys-extended
+        (append (cdr popper-echo-dispatch-keys)
+                (make-list (max 0 (- (length buried-popups)
+                                     (1- (length popper-echo-dispatch-keys))))
+                           nil)))
+       (popup-strings
+        (apply #'concat
+               (cons
+                (if-let ((transform popper-echo-transform-function))
+                    (funcall transform open-popup)
+                  (propertize open-popup 'face 'popper-echo-area))
+                (cl-mapcar (lambda (key buf)
+                             (concat
+                              (propertize ", " 'face 'popper-echo-area-buried)
+                              (propertize "[" 'face 'popper-echo-area-buried)
+                              (and key
+                                   (concat
+                                    (propertize (if (characterp key)
+                                                    (char-to-string key)
+                                                  key)
+                                                'face 'popper-echo-dispatch-hint)
+                                    (propertize ":" 'face 'popper-echo-area-buried)))
+                              (if-let ((transform popper-echo-transform-function))
+                                  (funcall transform buf)
+                                (concat
+                                 (propertize buf 'face 'popper-echo-area-buried)))
+                              (propertize "]" 'face 'popper-echo-area-buried)))
+                           dispatch-keys-extended
+                           buried-popups)))))
+    (let* ((max-width (- (* popper-echo-lines (frame-width)) (if group (length group) 11)))
+           (plen (length popup-strings))
+           (space-p (> max-width plen)))
+      (message "%s"
+               (concat
+                (or group "Popups: ")
+                (substring popup-strings 0 (if space-p plen max-width))
+                (unless space-p
+                  (propertize "..." 'face 'popper-echo-area-buried)))))
+    (popper-echo--activate-keymap (cons open-popup buried-popups) #'popper-echo)))
 
 ;;;###autoload
 (define-minor-mode popper-echo-mode
