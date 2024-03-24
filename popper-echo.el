@@ -87,8 +87,8 @@ NOTE: This feature is experimental."
   :type 'boolean
   :group 'popper)
 
-(defcustom popper-echo-dispatch-keys '("M-0" "M-1" "M-2" "M-3" "M-4"
-                                       "M-5" "M-6" "M-7" "M-8" "M-9")
+(defcustom popper-echo-dispatch-keys '("M-1" "M-2" "M-3" "M-4" "M-5"
+                                       "M-6" "M-7" "M-8" "M-9" "M-0")
   "List of keys used for dispatching to popup buffers.
 
 The first element is bound to the currently open popup.
