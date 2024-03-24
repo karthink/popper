@@ -245,6 +245,8 @@ Each command in the keymap calls the function REPEAT afterwards."
                   (propertize "..." 'face 'popper-echo-area-buried)))))
     (popper-echo--activate-keymap (cons open-popup buried-popups) #'popper-echo)))
 
+(defvar popper-tab-line-mode "popper-echo")
+
 ;;;###autoload
 (define-minor-mode popper-echo-mode
   "Toggle Popper Echo mode.
@@ -260,9 +262,72 @@ To define buffers as popups and customize popup display, see
   :group 'popper
   (if popper-echo-mode
       (progn
+        (when popper-tab-line-mode
+          (message "`popper-echo-mode'. is incompatible with `popper-tab-line-mode'  Disabling `popper-tab-line-mode'.")
+          (popper-tab-line-mode -1))
         (add-hook 'popper-open-popup-hook 'popper-echo)
         (unless popper-mode (popper-mode 1)))
     (remove-hook 'popper-open-popup-hook 'popper-echo)))
+
+;;; Notify using tab-line
+(declare-function tab-line-mode "tab-line")
+(declare-function tab-line-tab-name-format-default "tab-line")
+(defvar tab-line-tab-name-format-function)
+(defvar tab-line-tabs-function)
+(defvar tab-line-mode)
+
+(defun popper-tab-line--format (tab tabs)
+  (let ((name (tab-line-tab-name-format-default tab tabs))
+        (idx (cl-position tab tabs)))
+    (concat (propertize (char-to-string (+ idx #x2460))
+                        'face 'tab-line-tab-inactive)  ;; #x2776
+            name)))
+
+(defun popper-tab-line--ensure ()
+  (pcase-let ((`(_ . ,buried-popups) (popper-echo--popup-info))
+              (open-popup (buffer-name)))
+    (if (not buried-popups)
+        (tab-line-mode -1)
+      (unless tab-line-mode
+        (setq-local tab-line-tabs-function (lambda () (cdr (popper-echo--popup-info)))
+                    tab-line-tab-name-format-function #'popper-tab-line--format)
+        (tab-line-mode 1)))
+    (popper-echo--activate-keymap (cons open-popup buried-popups)
+                                  #'popper-tab-line--ensure)))
+
+;;;###autoload
+(define-minor-mode popper-tab-line-mode
+  "Toggle Popper Tab Line Mode.
+Show popup names in cycling order in the tab-line of the popup
+window when performing an action that involves showing a popup.
+These popups can be accessed directly or acted upon by using
+quick keys (see `popper-echo-dispatch-keys').
+
+To define buffers as popups and customize popup display, see
+`popper-mode'."
+  :global t
+  :lighter ""
+  :group 'popper
+  (if popper-tab-line-mode
+      (progn
+       (require 'tab-line)
+       (when popper-echo-mode
+         (message "`popper-tab-line-mode' is incompatible with `popper-echo-mode'.  Disabling `popper-echo-mode'.")
+         (popper-echo-mode -1))
+       (add-hook 'popper-open-popup-hook #'popper-tab-line--ensure)
+       (unless popper-mode (popper-mode 1)))
+    (remove-hook 'popper-open-popup-hook #'popper-tab-line--ensure)
+    ;; Clear tab-lines
+    (mapc
+     (pcase-lambda (`(_ . ,buf))
+       (when (buffer-live-p buf)
+         (with-current-buffer buf
+           (kill-local-variable 'tab-line-tabs-function)
+           (kill-local-variable 'tab-line-tab-name-format-function)
+           (unless global-tab-line-mode (tab-line-mode -1)))))
+     (mapcan #'cdr (cons (cons nil popper-open-popup-alist)
+                         popper-buried-popup-alist)))
+    (force-mode-line-update)))
 
 (provide 'popper-echo)
 ;;; popper-echo.el ends here
