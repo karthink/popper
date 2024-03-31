@@ -262,16 +262,40 @@ Valid values are \\='popup, \\='raised, \\='user-popup or nil.
    (floor (frame-height) 3)
    (floor (frame-height) 6)))
 
+(defun popper-select-popup-at-top (buffer &optional alist)
+  "Display and switch to popup-buffer BUFFER at the top of the screen.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
+  (let ((window (popper-display-popup-at-dir buffer 'top alist)))
+    (select-window window)))
+
 (defun popper-select-popup-at-bottom (buffer &optional alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen.
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (let ((window (popper-display-popup-at-bottom buffer alist)))
+  (let ((window (popper-display-popup-at-dir buffer 'bottom alist)))
     (select-window window)))
 
-(defun popper-display-popup-at-bottom (buffer &optional alist)
-  "Display popup-buffer BUFFER at the bottom of the screen.
+(defun popper-select-popup-at-left (buffer &optional alist)
+  "Display and switch to popup-buffer BUFFER at the left of the screen.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
+  (let ((window (popper-display-popup-at-dir buffer 'left alist)))
+    (select-window window)))
+
+(defun popper-select-popup-at-right (buffer &optional alist)
+  "Display and switch to popup-buffer BUFFER at the right of the screen.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
+  (let ((window (popper-display-popup-at-dir buffer 'right alist)))
+    (select-window window)))
+
+(defun popper-display-popup-at-dir (buffer dir &optional alist)
+  "Display popup-buffer BUFFER as a side window in DIR.
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
@@ -279,8 +303,13 @@ such alists."
    buffer
    (append alist
            `((window-height . ,popper-window-height)
-             (side . bottom)
-             (slot . 0)))))
+             (side . ,dir)
+             (slot . 1)))))
+
+(defun popper-select-popup (buffer &optional alist)
+  "Invoke the popper-select function configured in `popper-display-function'.
+For the meaning of BUFFER and ALIST read `popper-select-popup-at-bottom'."
+  (funcall popper-display-function buffer alist))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF qualifies for popper handling.
@@ -706,8 +735,7 @@ types as popups."
         (add-hook 'window-configuration-change-hook #'popper--update-popups)
         (add-hook 'select-frame-hook #'popper--update-popups)
         (add-to-list 'display-buffer-alist
-                     `(popper-display-control-p
-                       (,popper-display-function))))
+                     '(popper-display-control-p popper-select-popup)))
     ;; Turning the mode OFF
     (remove-hook 'window-configuration-change-hook #'popper--update-popups)
     (remove-hook 'window-configuration-change-hook #'popper--suppress-popups)
