@@ -307,9 +307,10 @@ such alists."
              (slot . 1)))))
 
 (defun popper-select-popup (buffer &optional alist)
-  "Invoke the popper-select function configured in `popper-display-function'.
+  "Invoke `popper-display-function' locally bound in BUFFER.
 For the meaning of BUFFER and ALIST read `popper-select-popup-at-bottom'."
-  (funcall popper-display-function buffer alist))
+  (with-current-buffer buffer
+    (funcall popper-display-function buffer alist)))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF qualifies for popper handling.
