@@ -163,6 +163,15 @@ action alist and displays the buffer.  See (info \"(elisp) Buffer
 Display Action Alists\") for details on the alist."
   :type 'function)
 
+(defcustom popper-display-action '()
+  "Action to use to display popper.
+
+ Note that this is only used when
+`popper-display-control' is non-nil.
+
+See (info \"(elisp) Buffer Display Action Alists\") for details on the alist."
+  :type 'list)
+
 (defcustom popper-group-function nil
   "Function that returns a popup context.
 
@@ -736,7 +745,8 @@ types as popups."
         (add-hook 'window-configuration-change-hook #'popper--update-popups)
         (add-hook 'select-frame-hook #'popper--update-popups)
         (add-to-list 'display-buffer-alist
-                     '(popper-display-control-p popper-select-popup)))
+                     `(popper-display-control-p popper-select-popup
+                       ,@popper-display-action)))
     ;; Turning the mode OFF
     (remove-hook 'window-configuration-change-hook #'popper--update-popups)
     (remove-hook 'window-configuration-change-hook #'popper--suppress-popups)
