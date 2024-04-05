@@ -276,7 +276,7 @@ Valid values are \\='popup, \\='raised, \\='user-popup or nil.
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (let ((window (popper-display-popup-at-dir buffer 'top alist)))
+  (let ((window (popper-display-popup-at-side buffer 'top alist)))
     (select-window window)))
 
 (defun popper-select-popup-at-bottom (buffer &optional alist)
@@ -284,7 +284,7 @@ such alists."
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (let ((window (popper-display-popup-at-dir buffer 'bottom alist)))
+  (let ((window (popper-display-popup-at-side buffer 'bottom alist)))
     (select-window window)))
 
 (defun popper-select-popup-at-left (buffer &optional alist)
@@ -292,7 +292,7 @@ such alists."
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (let ((window (popper-display-popup-at-dir buffer 'left alist)))
+  (let ((window (popper-display-popup-at-side buffer 'left alist)))
     (select-window window)))
 
 (defun popper-select-popup-at-right (buffer &optional alist)
@@ -300,20 +300,41 @@ such alists."
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (let ((window (popper-display-popup-at-dir buffer 'right alist)))
+  (let ((window (popper-display-popup-at-side buffer 'right alist)))
     (select-window window)))
 
-(defun popper-display-popup-at-dir (buffer dir &optional alist)
-  "Display popup-buffer BUFFER as a side window in DIR.
+(defun popper-display-popup-at-side (buffer side &optional alist)
+  "Display popup-buffer BUFFER as a side window in SIDE.
+Try to fit the window in a new slot.
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (display-buffer-in-side-window
-   buffer
-   (append alist
-           `((window-height . ,popper-window-height)
-             (side . ,dir)
-             (slot . 1)))))
+  (let* ((side-windows (seq-filter #'(lambda (win)
+                                       (equal (window-parameter win 'window-side)
+                                           side))
+                                   (window-list)))
+         (used-slots (sort (mapcar #'(lambda (win)
+                                       (window-parameter win 'window-slot))
+                                   side-windows)
+                           #'<))
+         (free-slot (if-let ((slot (car used-slots)))
+                        (progn
+                          (while (member slot used-slots)
+                            (setq slot (1+ slot))) ; Find a free slot.
+                          (when-let (max-side-slots (nth (cond ((eq side 'left) 0)
+		                                                       ((eq side 'top) 1)
+		                                                       ((eq side 'right) 2)
+		                                                       ((eq side 'bottom) 3))
+		                                                 window-sides-slots))
+                            (setq slot (min slot max-side-slots)))
+                          slot)
+                      0)))
+    (display-buffer-in-side-window
+     buffer
+     (append alist
+             `((window-height . ,popper-window-height)
+               (side . ,side)
+               (slot . ,free-slot))))))
 
 (defun popper-select-popup (buffer &optional alist)
   "Invoke `popper-display-function' locally bound in BUFFER.
