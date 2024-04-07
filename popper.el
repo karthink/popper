@@ -4,7 +4,7 @@
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
 ;; Version: 0.4.6
-;; Package-Requires: ((emacs "26.1"))
+;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
 
@@ -76,6 +76,7 @@
   (require 'subr-x))
 (require 'cl-lib)
 (require 'seq)
+(require 'transient)
 
 (declare-function project-root "project")
 (declare-function project-current "project")
@@ -675,6 +676,36 @@ If BUFFER is not specified act on the current buffer instead."
     (pcase popup-status
       ((or 'popup 'user-popup) (popper-raise-popup buf))
       (_ (popper-lower-to-popup buf)))))
+
+(defun popper--toggle-type-selector (fn)
+  "Invoke `popper-toggle-type' with FN as `popper-display-function'."
+  (setq-local popper-display-function fn)
+  (popper-toggle-type))
+
+(transient-define-prefix popper-toggle-type-transient ()
+  "Popper toggle type transient."
+  [[("k" "top" (lambda ()
+                 (interactive)
+                 (popper--toggle-type-selector #'popper-select-popup-at-top)))]
+   [("j" "bottom" (lambda ()
+                    (interactive)
+                    (popper--toggle-type-selector #'popper-select-popup-at-bottom)))]
+   [("h" "left" (lambda ()
+                  (interactive)
+                  (popper--toggle-type-selector #'popper-select-popup-at-left)))]
+   [("l" "right" (lambda ()
+                   (interactive)
+                   (popper--toggle-type-selector #'popper-select-popup-at-right)))]])
+
+(defun popper-toggle-type-with-transient (&optional buffer)
+  "Like `popper-toggle-type' but asking for direction.
+If BUFFER is not specified act on the current buffer instead."
+  (interactive)
+  (let* ((buf (get-buffer (or buffer (current-buffer))))
+         (popup-status (buffer-local-value 'popper-popup-status buf)))
+    (pcase popup-status
+      ((or 'popup 'user-popup) (popper-raise-popup buf))
+      (_ (popper-toggle-type-transient)))))
 
 (defun popper-kill-latest-popup ()
   "Kill the latest popup-buffer and delete its window."
