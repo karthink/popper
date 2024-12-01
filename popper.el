@@ -280,7 +280,7 @@ such alists."
    (append alist
            `((window-height . ,popper-window-height)
              (side . bottom)
-             (slot . 1)))))
+             (slot . 0)))))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF qualifies for popper handling.
