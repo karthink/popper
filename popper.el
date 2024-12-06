@@ -312,30 +312,34 @@ Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
   (let* ((side-windows (seq-filter #'(lambda (win)
                                        (equal (window-parameter win 'window-side)
-                                           side))
+                                              side))
                                    (window-list)))
-         (used-slots (sort (mapcar #'(lambda (win)
-                                       (window-parameter win 'window-slot))
-                                   side-windows)
-                           #'<))
-         (free-slot (if-let ((slot (car used-slots)))
-                        (progn
-                          (while (member slot used-slots)
-                            (setq slot (1+ slot))) ; Find a free slot.
-                          (when-let (max-side-slots (nth (cond ((eq side 'left) 0)
-		                                                       ((eq side 'top) 1)
-		                                                       ((eq side 'right) 2)
-		                                                       ((eq side 'bottom) 3))
-		                                                 window-sides-slots))
-                            (setq slot (min slot max-side-slots)))
-                          slot)
-                      0)))
+         (displayed-win (seq-find #'(lambda (win)
+                                      (eq (window-buffer win) buffer))
+                                  side-windows))
+         (target-slot (if displayed-win
+                          (window-parameter displayed-win 'window-slot)
+                        (let* ((used-slots (sort (mapcar #'(lambda (win)
+                                                             (window-parameter win 'window-slot))
+                                                         side-windows)
+                                                 #'<))
+                               (free-slot 0))
+                          (while (member free-slot used-slots)
+                            (setq free-slot (1+ free-slot)))
+                          (when-let ((max-side-slots (nth (cond
+                                                           ((eq side 'left) 0)
+                                                           ((eq side 'top) 1)
+                                                           ((eq side 'right) 2)
+                                                           ((eq side 'bottom) 3))
+                                                          window-sides-slots)))
+                            (setq free-slot (min free-slot max-side-slots)))
+                          free-slot))))
     (display-buffer-in-side-window
      buffer
      (append alist
              `((window-height . ,popper-window-height)
                (side . ,side)
-               (slot . ,free-slot))))))
+               (slot . ,target-slot))))))
 
 (defun popper-select-popup (buffer &optional alist)
   "Invoke `popper-display-function' locally bound in BUFFER.
