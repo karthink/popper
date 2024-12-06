@@ -4,7 +4,7 @@
 
 ;; Author: Karthik Chikmagalur <karthik.chikmagalur@gmail.com>
 ;; Version: 0.4.6
-;; Package-Requires: ((emacs "26.1"))
+;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: convenience
 ;; URL: https://github.com/karthink/popper
 
@@ -76,6 +76,7 @@
   (require 'subr-x))
 (require 'cl-lib)
 (require 'seq)
+(require 'transient)
 
 (declare-function project-root "project")
 (declare-function project-current "project")
@@ -162,6 +163,15 @@ This function accepts two arguments, a buffer and (optional) an
 action alist and displays the buffer.  See (info \"(elisp) Buffer
 Display Action Alists\") for details on the alist."
   :type 'function)
+
+(defcustom popper-display-action '()
+  "Action to use to display popper.
+
+ Note that this is only used when
+`popper-display-control' is non-nil.
+
+See (info \"(elisp) Buffer Display Action Alists\") for details on the alist."
+  :type 'list)
 
 (defcustom popper-group-function nil
   "Function that returns a popup context.
@@ -262,25 +272,80 @@ Valid values are \\='popup, \\='raised, \\='user-popup or nil.
    (floor (frame-height) 3)
    (floor (frame-height) 6)))
 
+(defun popper-select-popup-at-top (buffer &optional alist)
+  "Display and switch to popup-buffer BUFFER at the top of the screen.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
+  (let ((window (popper-display-popup-at-side buffer 'top alist)))
+    (select-window window)))
+
 (defun popper-select-popup-at-bottom (buffer &optional alist)
   "Display and switch to popup-buffer BUFFER at the bottom of the screen.
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (let ((window (popper-display-popup-at-bottom buffer alist)))
+  (let ((window (popper-display-popup-at-side buffer 'bottom alist)))
     (select-window window)))
 
-(defun popper-display-popup-at-bottom (buffer &optional alist)
-  "Display popup-buffer BUFFER at the bottom of the screen.
+(defun popper-select-popup-at-left (buffer &optional alist)
+  "Display and switch to popup-buffer BUFFER at the left of the screen.
 ALIST is an association list of action symbols and values.  See
 Info node `(elisp) Buffer Display Action Alists' for details of
 such alists."
-  (display-buffer-in-side-window
-   buffer
-   (append alist
-           `((window-height . ,popper-window-height)
-             (side . bottom)
-             (slot . 0)))))
+  (let ((window (popper-display-popup-at-side buffer 'left alist)))
+    (select-window window)))
+
+(defun popper-select-popup-at-right (buffer &optional alist)
+  "Display and switch to popup-buffer BUFFER at the right of the screen.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
+  (let ((window (popper-display-popup-at-side buffer 'right alist)))
+    (select-window window)))
+
+(defun popper-display-popup-at-side (buffer side &optional alist)
+  "Display popup-buffer BUFFER as a side window in SIDE.
+Try to fit the window in a new slot.
+ALIST is an association list of action symbols and values.  See
+Info node `(elisp) Buffer Display Action Alists' for details of
+such alists."
+  (let* ((side-windows (seq-filter #'(lambda (win)
+                                       (equal (window-parameter win 'window-side)
+                                              side))
+                                   (window-list)))
+         (displayed-win (seq-find #'(lambda (win)
+                                      (eq (window-buffer win) buffer))
+                                  side-windows))
+         (target-slot (if displayed-win
+                          (window-parameter displayed-win 'window-slot)
+                        (let* ((used-slots (sort (mapcar #'(lambda (win)
+                                                             (window-parameter win 'window-slot))
+                                                         side-windows)
+                                                 #'<))
+                               (free-slot 0))
+                          (while (member free-slot used-slots)
+                            (setq free-slot (1+ free-slot)))
+                          (when-let ((max-side-slots (nth (cond
+                                                           ((eq side 'left) 0)
+                                                           ((eq side 'top) 1)
+                                                           ((eq side 'right) 2)
+                                                           ((eq side 'bottom) 3))
+                                                          window-sides-slots)))
+                            (setq free-slot (min free-slot max-side-slots)))
+                          free-slot))))
+    (display-buffer-in-side-window
+     buffer
+     (append alist
+             `((window-height . ,popper-window-height)
+               (side . ,side)
+               (slot . ,target-slot))))))
+
+(defun popper-select-popup (buffer &optional alist)
+  "Invoke `popper-display-function' locally bound in BUFFER.
+For the meaning of BUFFER and ALIST read `popper-select-popup-at-bottom'."
+  (with-current-buffer buffer
+    (funcall popper-display-function buffer alist)))
 
 (defun popper-popup-p (buf)
   "Predicate to test if buffer BUF qualifies for popper handling.
@@ -616,6 +681,36 @@ If BUFFER is not specified act on the current buffer instead."
       ((or 'popup 'user-popup) (popper-raise-popup buf))
       (_ (popper-lower-to-popup buf)))))
 
+(defun popper--toggle-type-selector (fn)
+  "Invoke `popper-toggle-type' with FN as `popper-display-function'."
+  (setq-local popper-display-function fn)
+  (popper-toggle-type))
+
+(transient-define-prefix popper-toggle-type-transient ()
+  "Popper toggle type transient."
+  [[("k" "top" (lambda ()
+                 (interactive)
+                 (popper--toggle-type-selector #'popper-select-popup-at-top)))]
+   [("j" "bottom" (lambda ()
+                    (interactive)
+                    (popper--toggle-type-selector #'popper-select-popup-at-bottom)))]
+   [("h" "left" (lambda ()
+                  (interactive)
+                  (popper--toggle-type-selector #'popper-select-popup-at-left)))]
+   [("l" "right" (lambda ()
+                   (interactive)
+                   (popper--toggle-type-selector #'popper-select-popup-at-right)))]])
+
+(defun popper-toggle-type-with-transient (&optional buffer)
+  "Like `popper-toggle-type' but asking for direction.
+If BUFFER is not specified act on the current buffer instead."
+  (interactive)
+  (let* ((buf (get-buffer (or buffer (current-buffer))))
+         (popup-status (buffer-local-value 'popper-popup-status buf)))
+    (pcase popup-status
+      ((or 'popup 'user-popup) (popper-raise-popup buf))
+      (_ (popper-toggle-type-transient)))))
+
 (defun popper-kill-latest-popup ()
   "Kill the latest popup-buffer and delete its window."
   (interactive)
@@ -706,8 +801,8 @@ types as popups."
         (add-hook 'window-configuration-change-hook #'popper--update-popups)
         (add-hook 'select-frame-hook #'popper--update-popups)
         (add-to-list 'display-buffer-alist
-                     `(popper-display-control-p
-                       (,popper-display-function))))
+                     `(popper-display-control-p popper-select-popup
+                       ,@popper-display-action)))
     ;; Turning the mode OFF
     (remove-hook 'window-configuration-change-hook #'popper--update-popups)
     (remove-hook 'window-configuration-change-hook #'popper--suppress-popups)
