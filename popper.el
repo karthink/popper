@@ -715,15 +715,15 @@ types as popups."
     (cl-loop for (_ . win-buf-alist) in popper-buried-popup-alist do
              (popper--restore-mode-lines win-buf-alist))
     (popper--restore-mode-lines popper-open-popup-alist)
-    ;; TODO: Clean this up
-    (setq popper-buried-popup-alist nil
-          popper-open-popup-alist nil
-          popper--reference-names nil
-          popper--reference-modes nil
-          popper--reference-predicates nil
-          popper--suppressed-names nil
-          popper--suppressed-modes nil
-          popper--suppressed-predicates nil)
+    (dolist (var '("buried-popup-alist"
+                   "open-popup-alist"
+                   "-reference-names"
+                   "-reference-modes"
+                   "-reference-predicates"
+                   "-suppressed-names"
+                   "-suppressed-modes"
+                   "-suppressed-predicates"))
+      (eval `(setq ,(intern (concat "popper-" var)) nil)))
     (setq display-buffer-alist
           (cl-remove 'popper-display-control-p
                      display-buffer-alist
