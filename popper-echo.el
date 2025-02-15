@@ -192,10 +192,11 @@ Each command in the keymap calls the function REPEAT afterwards."
                                (t keybind))
             do
             (define-key map (kbd rawkey) (popper-echo--dispatch-toggle i buffers repeat))
-            (define-key map (kbd (concat "k " rawkey))
-                        (popper-echo--dispatch-kill i buffers repeat))
-            (define-key map (kbd (concat "^ " rawkey))
-                        (popper-echo--dispatch-raise i buffers repeat))
+            (when popper-echo-dispatch-actions
+              (define-key map (kbd (concat "k " rawkey))
+                          (popper-echo--dispatch-kill i buffers repeat))
+              (define-key map (kbd (concat "^ " rawkey))
+                          (popper-echo--dispatch-raise i buffers repeat)))
             finally return map)))
 
 ;;; Notify in echo area:
