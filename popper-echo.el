@@ -135,7 +135,7 @@ This is used to create functions for switching between popups
 quickly."
   (lambda (&optional arg)
     (interactive "P")
-    (when-let ((buf (nth i buf-list)))
+    (when-let* ((buf (nth i buf-list)))
       (unless arg (popper-close-latest))
       (display-buffer buf)
       (popper--update-popups)
@@ -217,7 +217,7 @@ Each command in the keymap calls the function REPEAT afterwards."
        (popup-strings
         (apply #'concat
                (cons
-                (if-let ((transform popper-echo-transform-function))
+                (if-let* ((transform popper-echo-transform-function))
                     (funcall transform open-popup)
                   (propertize open-popup 'face 'popper-echo-area))
                 (cl-mapcar (lambda (key buf)
@@ -231,7 +231,7 @@ Each command in the keymap calls the function REPEAT afterwards."
                                                   key)
                                                 'face 'popper-echo-dispatch-hint)
                                     (propertize ":" 'face 'popper-echo-area-buried)))
-                              (if-let ((transform popper-echo-transform-function))
+                              (if-let* ((transform popper-echo-transform-function))
                                   (funcall transform buf)
                                 (concat
                                  (propertize buf 'face 'popper-echo-area-buried)))
