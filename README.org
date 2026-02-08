@@ -96,13 +96,14 @@ If you want the echo-area hints, turn on =popper-echo-mode=.
     :bind (("C-`"   . popper-toggle)
            ("M-`"   . popper-cycle)
            ("C-M-`" . popper-toggle-type))
+    :custom
+    (popper-reference-buffers
+     '("\\*Messages\\*"
+       "Output\\*$"
+       "\\*Async Shell Command\\*"
+       help-mode
+       compilation-mode))
     :init
-    (setq popper-reference-buffers
-          '("\\*Messages\\*"
-            "Output\\*$"
-            "\\*Async Shell Command\\*"
-            help-mode
-            compilation-mode))
     (popper-mode +1)
     (popper-echo-mode +1))                ; For echo area hints
 #+END_SRC
@@ -111,13 +112,13 @@ See the Customization section for details on specifying buffer types as popups.
 ** Without =use-package=
 #+BEGIN_SRC emacs-lisp
   (require 'popper)
-  (setq popper-reference-buffers
-        '("\\*Messages\\*"
-          "Output\\*$"
-          "\\*Async Shell Command\\*"
-          help-mode
-          compilation-mode))
-  (global-set-key (kbd "C-`") 'popper-toggle)  
+  (setopt popper-reference-buffers
+          '("\\*Messages\\*"
+            "Output\\*$"
+            "\\*Async Shell Command\\*"
+            help-mode
+            compilation-mode))
+  (global-set-key (kbd "C-`") 'popper-toggle)
   (global-set-key (kbd "M-`") 'popper-cycle)
   (global-set-key (kbd "C-M-`") 'popper-toggle-type)
   (popper-mode +1)
@@ -139,11 +140,11 @@ To get started, customize this variable:
   Example: 
 
   #+BEGIN_SRC emacs-lisp
-    (setq popper-reference-buffers
-          '("\\*Messages\\*"
-            "Output\\*$"
-            help-mode
-            compilation-mode))
+    (setopt popper-reference-buffers
+            '("\\*Messages\\*"
+              "Output\\*$"
+              help-mode
+              compilation-mode))
   #+END_SRC
 
   Will treat the following as popups: The Messages buffer, any buffer ending in "Output*", and all help and compilation buffers.
@@ -152,25 +153,25 @@ To get started, customize this variable:
 
   #+BEGIN_SRC emacs-lisp
     ;; Match eshell, shell, term and/or vterm buffers
-    (setq popper-reference-buffers
-          (append popper-reference-buffers
-                  '("^\\*eshell.*\\*$" eshell-mode ;eshell as a popup
-                    "^\\*shell.*\\*$"  shell-mode  ;shell as a popup
-                    "^\\*term.*\\*$"   term-mode   ;term as a popup
-                    "^\\*vterm.*\\*$"  vterm-mode  ;vterm as a popup
-                    )))
+    (setopt popper-reference-buffers
+            (append popper-reference-buffers
+                    '("^\\*eshell.*\\*$" eshell-mode ;eshell as a popup
+                      "^\\*shell.*\\*$"  shell-mode  ;shell as a popup
+                      "^\\*term.*\\*$"   term-mode   ;term as a popup
+                      "^\\*vterm.*\\*$"  vterm-mode  ;vterm as a popup
+                      )))
   #+END_SRC
 
   As of v0.40, Popper also supports classifying a buffer as a popup based on any user supplied predicate. This predicate (function) is called with the buffer as argument and returns =t= if it should be considered a popup. Here is an example with a predicate:
-  
+
   #+BEGIN_SRC emacs-lisp
-    (setq popper-reference-buffers
-          '("\\*Messages\\*"
-            help-mode
-            (lambda (buf) (with-current-buffer buf
-                       (and (derived-mode-p 'fundamental-mode)
-                            (< (count-lines (point-min) (point-max))
-                               10)))))))
+    (setopt popper-reference-buffers
+            '("\\*Messages\\*"
+              help-mode
+              (lambda (buf) (with-current-buffer buf
+                         (and (derived-mode-p 'fundamental-mode)
+                              (< (count-lines (point-min) (point-max))
+                                 10)))))))
   #+END_SRC
   
   This list includes the the Messages and =help-mode= buffers from before, along with a predicate: any buffer derived from the major mode =fundamental-mode= that has fewer than 10 lines will be considered a popup. 
@@ -265,11 +266,11 @@ This is generally useful to keep buffers that are created as a side effect from 
 To specify popups to auto-hide, use a cons cell with the =hide= symbol when specifying =popup-reference-buffers=:
 
 #+begin_src emacs-lisp
-  (setq popper-reference-buffers
-      '(("Output\\*$" . hide)
-        (completion-list-mode . hide)
-        occur-mode
-        "\\*Messages\\*"))
+  (setopt popper-reference-buffers
+         '(("Output\\*$" . hide)
+           (completion-list-mode . hide)
+           occur-mode
+           "\\*Messages\\*"))
 #+end_src
 
 This assignment will suppress all buffers ending in =Output*= and the Completions buffer. The other entries are treated as normal popups.
