@@ -127,7 +127,13 @@ buffers will be suppressed when they are first created."
                   (cons (choice (regexp :tag "Buffer name regexp")
                                 (symbol :tag "Major mode")
                                 (function :tag "Predicate function"))
-                        (const :tag "Hide" hide)))))
+                        (const :tag "Hide" hide))))
+  :set (lambda (sym val)
+         (set-default sym val)
+         (when (bound-and-true-p popper-mode)
+           (popper--set-reference-vars)
+           (popper--find-buried-popups)
+           (popper--update-popups))))
 
 (defcustom popper-mode-line '(:eval (propertize " POP" 'face 'mode-line-emphasis))
   "String or sexp to show in the mode-line of popper.
@@ -657,7 +663,14 @@ This should run after `popper--update-popups' in
       (popper--update-popups))))
 
 (defun popper--set-reference-vars ()
-  "Unpack `popper-reference-buffers' to set popper--reference- variables."
+  "Unpack `popper-reference-buffers' to set popper--reference- variables.
+Clears existing values first, making it safe to call repeatedly."
+  (setq popper--reference-names nil
+        popper--reference-modes nil
+        popper--reference-predicates nil
+        popper--suppressed-names nil
+        popper--suppressed-modes nil
+        popper--suppressed-predicates nil)
   (cl-labels ((popper--classify-type
                 (elm) (pcase-exhaustive elm
                         ((pred stringp) 'name)
@@ -715,15 +728,9 @@ types as popups."
     (cl-loop for (_ . win-buf-alist) in popper-buried-popup-alist do
              (popper--restore-mode-lines win-buf-alist))
     (popper--restore-mode-lines popper-open-popup-alist)
-    ;; TODO: Clean this up
     (setq popper-buried-popup-alist nil
-          popper-open-popup-alist nil
-          popper--reference-names nil
-          popper--reference-modes nil
-          popper--reference-predicates nil
-          popper--suppressed-names nil
-          popper--suppressed-modes nil
-          popper--suppressed-predicates nil)
+          popper-open-popup-alist nil)
+    (popper--set-reference-vars)
     (setq display-buffer-alist
           (cl-remove 'popper-display-control-p
                      display-buffer-alist
