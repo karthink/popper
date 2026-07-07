@@ -9,7 +9,7 @@ Popper is a minor-mode to tame the flood of ephemeral windows Emacs produces,
 while still keeping them within arm's reach.
 
 Designate any buffer to "popup" status, and it will stay out of your way.
-Disimss or summon it easily with one key. Cycle through all your "popups" or
+Dismiss or summon it easily with one key. Cycle through all your "popups" or
 just the ones relevant to your current buffer. Group popups automatically so
 you're presented with the most relevant ones. Useful for many things, including
 toggling display of REPLs, documentation, compilation or shell output: any
